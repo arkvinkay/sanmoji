@@ -1,0 +1,29 @@
+[[permission]]
+identifier = "allow-app-commands"
+description = "Allow all SanMoji Tauri commands"
+commands.allow = [
+  "get_settings",
+  "save_settings",
+  "load_project",
+  "save_project",
+  "relink_video",
+  "autosave_draft",
+  "load_autosave_draft",
+  "get_video_info",
+  "prepare_video_preview_path",
+  "get_waveform",
+  "validate_export",
+  "get_system_fonts",
+  "generate_ass_preview",
+  "export_ass_file",
+  "export_srt_file",
+  "import_subtitle_file",
+  "export_video",
+  "batch_export_videos",
+  "ensure_ffmpeg",
+  "get_ffmpeg_status",
+  "track_recent_video",
+  "export_subtitle_file",
+  "cut_video",
+  "cancel_export"
+]

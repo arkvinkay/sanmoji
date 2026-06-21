@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Rust / Tauri build output
+src-tauri/target/
+
+# FFmpeg sidecar (large binary — auto-downloaded on first use)
+src-tauri/bin/*.exe
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local env
+.env
+.env.*

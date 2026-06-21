@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SanMoji</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <noscript>
+    <p style="padding:1rem;background:#161616;color:#e8e8e8;font-family:system-ui,sans-serif;">
+      SanMoji requires JavaScript. Please enable JavaScript in your browser or WebView settings to use this application.
+    </p>
+  </noscript>
+  <div id="app">
+    <header id="toolbar">
+      <div class="toolbar-left">
+        <span class="app-logo" title="SanMoji — 三文字 · three-track lyric subtitle studio">三 SanMoji</span>
+        <span class="toolbar-sep"></span>
+        <div class="btn-group">
+          <button id="btn-new" class="btn-icon" title="New blank project" aria-label="New project">📄</button>
+          <button id="btn-open-video" class="btn-icon" title="Open video file" aria-label="Open video">🎬</button>
+          <button id="btn-close-video" class="btn-icon" title="Close / unload video" aria-label="Close video">⏏</button>
+          <button id="btn-cut-video" class="btn-icon" title="Cut video segment (stream copy, no re-encode)" aria-label="Cut video">✂</button>
+          <button id="btn-open-project" class="btn-icon" title="Open .smpr project" aria-label="Open project">📂</button>
+          <button id="btn-save-project" class="btn-icon" title="Save project" aria-label="Save project">💾</button>
+        </div>
+        <span class="toolbar-sep"></span>
+        <div class="btn-group">
+          <button id="btn-import-subtitle" class="btn-icon" title="Import .srt, .ass, or .vtt subtitle" aria-label="Import subtitle">📥</button>
+          <div class="recent-wrap">
+            <select id="recent-items" title="Quick-open a recent project or video" aria-label="Recent projects and videos">
+              <option value="">Recent…</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar-center">
+        <span id="project-title">Untitled</span>
+        <span id="video-res" class="dim-text"></span>
+      </div>
+      <div class="toolbar-right">
+        <div class="btn-group">
+          <button id="btn-export-subs" title="Export subtitle file (ASS, SRT, VTT, SSA)">Subs</button>
+          <button id="btn-batch-export" title="Export multiple saved projects to video in one batch">Batch</button>
+          <button id="btn-settings" title="Subtitle style, layout Y position, watermark, and presets">⚙ Settings</button>
+          <button id="btn-shortcuts" title="Customize keyboard shortcuts" aria-label="Keyboard shortcuts">⌨ Shortcuts</button>
+          <button id="btn-about" title="About SanMoji — version, license, and credits">About</button>
+        </div>
+        <span class="toolbar-sep"></span>
+        <button id="btn-export" class="btn-primary" title="Burn subtitles into a new video file (MP4, MKV, WebM, …)" aria-label="Export video">▶ Export</button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section id="preview-panel">
+        <div id="video-wrapper">
+          <video id="video-player" controls preload="metadata" aria-label="Video preview player">
+            <p>Your browser does not support HTML5 video playback. Open a video file from the toolbar to preview subtitles.</p>
+          </video>
+          <canvas id="sub-overlay" aria-label="Subtitle preview overlay" role="img"></canvas>
+        </div>
+        <div id="timeline-wrap">
+          <div class="timeline-header">
+            <span id="timeline-label">Timeline</span>
+            <div id="waveform-toolbar" class="wf-toolbar">
+              <button id="btn-wf-zoom-out" type="button" title="Zoom out waveform (less detail, wider view)">−</button>
+              <span id="wf-zoom-label" title="Current waveform zoom level">1×</span>
+              <button id="btn-wf-zoom-in" type="button" title="Zoom in waveform for precise IN/OUT placement">+</button>
+              <button id="btn-wf-fit" type="button" title="Reset zoom to fit entire video">Fit</button>
+              <button id="btn-wf-zoom-row" type="button" title="Zoom waveform to fit the active subtitle row">↔</button>
+              <span class="wf-hint dim-text" title="Scroll wheel on waveform to zoom · drag to pan when zoomed">Scroll=zoom · drag=pan</span>
+            </div>
+          </div>
+          <canvas id="timeline-canvas" height="48" title="Click to seek · shows subtitle row timing blocks" aria-label="Subtitle timeline — click to seek" role="img"></canvas>
+          <canvas id="waveform-canvas" height="48" title="Click to seek · scroll to zoom · drag to pan when zoomed" aria-label="Audio waveform — click to seek, scroll to zoom" role="img"></canvas>
+        </div>
+        <div id="transport">
+          <span id="time-display" title="Current playhead position">00:00:00.000</span>
+          <label class="transport-speed" title="Playback speed for precise timing work">
+            <span class="dim-text">Speed</span>
+            <select id="playback-speed" aria-label="Playback speed">
+              <option value="0.25">0.25×</option>
+              <option value="0.5">0.5×</option>
+              <option value="0.75">0.75×</option>
+              <option value="1" selected>1×</option>
+              <option value="1.25">1.25×</option>
+              <option value="1.5">1.5×</option>
+              <option value="1.75">1.75×</option>
+              <option value="2">2×</option>
+            </select>
+          </label>
+          <label class="snap-toggle" title="Snap IN/OUT markers to the nearest whole second">
+            <input type="checkbox" id="snap-toggle" />
+            <span>Snap 1s</span>
+          </label>
+          <button id="btn-set-in" title="Set start time (IN) of active row at playhead — shortcut [">[ IN</button>
+          <button id="btn-set-out" title="Set end time (OUT) of active row at playhead — shortcut ]">OUT ]</button>
+          <label class="snap-toggle" title="After OUT: select next row (or auto-add one at playhead) — video keeps playing">
+            <input type="checkbox" id="auto-advance-toggle" />
+            <span aria-hidden="true">Auto →</span>
+            <span class="sr-only">Auto-advance to next row after setting OUT</span>
+          </label>
+        </div>
+      </section>
+
+      <section id="editor-panel">
+        <div id="editor-toolbar">
+          <input type="search" id="row-search" placeholder="Search rows…" autocomplete="off" title="Filter subtitle rows by Romaji, Indo, or English text" />
+          <span class="toolbar-sep"></span>
+          <div class="btn-group">
+            <button id="btn-shift-minus" title="Shift all subtitle rows earlier by 1 second">−1s</button>
+            <button id="btn-shift-plus" title="Shift all subtitle rows later by 1 second">+1s</button>
+            <button id="btn-scale-timing" title="Scale all row durations by a factor around the playhead">Scale</button>
+            <button id="btn-fix-overlaps" title="Trim overlapping rows so each ends when the next starts">Fix overlaps</button>
+          </div>
+          <span class="toolbar-sep"></span>
+          <button id="btn-layout-quick" title="Open Layout settings to adjust subtitle Y position (saved in Settings)">Layout Y</button>
+        </div>
+        <div id="rows-header">
+          <span></span><span>Start</span><span>End</span>
+          <span>Romaji</span><span>Indo</span><span>English</span>
+          <span>CPS</span><span>Anim</span><span></span>
+        </div>
+        <div id="rows-scroll">
+          <div id="rows-spacer-top"></div>
+          <div id="rows-container"></div>
+          <div id="rows-spacer-bottom"></div>
+        </div>
+        <button id="btn-add-row" title="Add a new subtitle row at the current playhead (4s default duration)">+ Add Row</button>
+      </section>
+    </main>
+
+    <footer id="status-bar"><span id="status-text">Ready</span><span id="status-history" class="status-history" aria-live="polite"></span></footer>
+  </div>
+
+  <div id="file-drop-overlay" class="file-drop-overlay hidden" aria-hidden="true">
+    <div class="file-drop-box">
+      <span class="file-drop-icon">📂</span>
+      <span class="file-drop-text">Drop video, project (.smpr), or subtitle file</span>
+    </div>
+  </div>
+
+  <div id="video-loading" class="video-loading hidden" aria-live="polite" aria-busy="false">
+    <div class="video-loading-box">
+      <div class="spinner"></div>
+      <span id="video-loading-text">Opening video…</span>
+      <div class="progress-wrap video-loading-bar-wrap">
+        <div id="video-loading-bar" class="progress-bar" style="--progress:0"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" role="status" aria-live="polite"></div>
+
+  <div id="row-context-menu" class="context-menu hidden">
+    <button data-ctx="duplicate" title="Duplicate this row (choose placement)">Duplicate Row</button>
+    <button data-ctx="split" title="Split row at playhead into two rows">Split at Playhead</button>
+    <button data-ctx="merge" title="Merge this row with the next row">Merge with Next</button>
+    <button data-ctx="delete" class="danger" title="Delete this subtitle row">Delete Row</button>
+  </div>
+
+  <div id="modal-settings" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title">
+    <div class="modal-box modal-wide">
+      <h2 id="modal-settings-title">Settings</h2>
+      <p class="dim-text settings-hint">Changes apply after you click <strong>Save</strong>. Layout Y (vertical position) is stored globally.</p>
+      <div id="settings-content"></div>
+      <div class="modal-footer">
+        <button id="btn-settings-save" title="Save all settings to disk">Save</button>
+        <button id="btn-settings-cancel" title="Discard unsaved setting changes">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-export" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-export-title">
+    <div class="modal-box">
+      <h2 id="modal-export-title">Export Video</h2>
+      <p class="dim-text" id="export-res-info">Resolution: auto-detect from video</p>
+      <label>Output Format
+        <select id="export-format" title="Container and codec for the exported video">
+          <option value="mp4">MP4 — H.264 (most compatible)</option>
+          <option value="mkv">MKV — H.264</option>
+          <option value="mov">MOV — H.264</option>
+          <option value="m4v">M4V — H.264</option>
+          <option value="avi">AVI — H.264</option>
+          <option value="webm">WebM — VP9 + Opus</option>
+        </select>
+      </label>
+      <label>Output File
+        <div class="row-inline">
+          <input id="export-path" type="text" readonly title="Destination video file path" />
+          <button id="btn-export-browse" title="Choose output file location">Browse</button>
+        </div>
+      </label>
+      <label>Quality Preset
+        <select id="export-quality-preset" title="One-click quality profiles for common platforms">
+          <option value="custom">Custom (manual CRF/preset)</option>
+          <option value="youtube">YouTube — CRF 18, slow</option>
+          <option value="social">Social media — CRF 23, fast</option>
+          <option value="draft">Draft preview — CRF 28, ultrafast</option>
+        </select>
+      </label>
+      <label>Encoder
+        <select id="export-encoder" title="Video encoder — GPU options require compatible hardware drivers">
+          <option value="libx264">libx264 (CPU, compatible)</option>
+          <option value="h264_nvenc">h264_nvenc (NVIDIA GPU)</option>
+          <option value="h264_qsv">h264_qsv (Intel Quick Sync)</option>
+        </select>
+      </label>
+      <label>Quality (CRF) <small>0=lossless · 18=default · 28=smaller</small>
+        <input id="export-crf" type="range" min="0" max="51" value="18" title="Constant Rate Factor — lower is higher quality" />
+        <span id="export-crf-val">18</span>
+      </label>
+      <label>Speed Preset
+        <select id="export-preset" title="Encoding speed vs compression efficiency">
+          <option value="ultrafast">ultrafast (fast, larger file)</option>
+          <option value="fast">fast</option>
+          <option value="medium">medium</option>
+          <option value="slow" selected>slow (recommended)</option>
+          <option value="veryslow">veryslow (best quality, slow)</option>
+        </select>
+      </label>
+      <div id="export-validation" class="validation-list hidden"></div>
+      <div id="export-progress" class="hidden">
+        <div class="progress-wrap">
+          <div id="export-progress-bar" class="progress-bar" style="--progress:0"></div>
+        </div>
+        <span id="export-progress-text">Exporting…</span>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-export-segment" title="Export the first 20% of the video with burned-in subtitles (quick preview)">Preview 20%</button>
+        <button id="btn-export-start" class="btn-primary" title="Start full video export with burned-in subtitles">Start Export</button>
+        <button id="btn-export-cancel" title="Close export dialog">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-about" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <div class="modal-box modal-wide">
+      <h2 id="about-title">About SanMoji</h2>
+      <div id="about-content" class="about-content"></div>
+      <div class="modal-footer">
+        <button id="btn-about-close" title="Close about dialog">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-relink" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-relink-title">
+    <div class="modal-box">
+      <h2 id="modal-relink-title">Relink Video</h2>
+      <p class="dim-text" id="relink-message">The linked video file could not be found.</p>
+      <p class="dim-text" id="relink-old-path"></p>
+      <label>New Video File
+        <div class="row-inline">
+          <input id="relink-path" type="text" readonly placeholder="Select video file…" title="Replacement video file" />
+          <button id="btn-relink-browse" title="Browse for the missing video file">Browse</button>
+        </div>
+      </label>
+      <div class="modal-footer">
+        <button id="btn-relink-confirm" class="btn-primary" title="Link project to the new video file">Relink</button>
+        <button id="btn-relink-cancel" title="Cancel relink">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-batch" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-batch-title">
+    <div class="modal-box modal-wide">
+      <h2 id="modal-batch-title">Batch Export</h2>
+      <p class="dim-text">Select multiple .smpr files. Each exports as MP4 in the output folder.</p>
+      <label>Output Format
+        <select id="batch-format" title="Video format for all batch exports">
+          <option value="mp4">MP4 — H.264</option>
+          <option value="mkv">MKV — H.264</option>
+          <option value="mov">MOV — H.264</option>
+          <option value="m4v">M4V — H.264</option>
+          <option value="avi">AVI — H.264</option>
+          <option value="webm">WebM — VP9</option>
+        </select>
+      </label>
+      <div class="row-inline">
+        <button id="btn-batch-add" title="Add one or more .smpr files to the batch queue">+ Add Projects</button>
+        <button id="btn-batch-clear" title="Remove all projects from the batch queue">Clear</button>
+      </div>
+      <div id="batch-list"></div>
+      <label>Output folder
+        <div class="row-inline">
+          <input id="batch-output-dir" type="text" readonly placeholder="Select output folder…" title="Folder where exported videos will be saved" />
+          <button id="btn-batch-dir" title="Choose batch output folder">Browse</button>
+        </div>
+      </label>
+      <div id="batch-progress" class="hidden">
+        <div class="spinner"></div>
+        <span id="batch-status">Exporting…</span>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-batch-start" class="btn-primary" title="Export all queued projects">Start Batch</button>
+        <button id="btn-batch-cancel" title="Close batch export dialog">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-export-subs" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-export-subs-title">
+    <div class="modal-box">
+      <h2 id="modal-export-subs-title">Export Subtitles</h2>
+      <p class="dim-text">Export subtitle rows only — no video re-encode.</p>
+      <label>Format
+        <select id="subs-format" title="Subtitle file format">
+          <option value="ass">ASS — Advanced SubStation Alpha (styled, for burn-in tools)</option>
+          <option value="ssa">SSA — SubStation Alpha (legacy ASS)</option>
+          <option value="srt">SRT — SubRip (universal, plain text)</option>
+          <option value="vtt">VTT — WebVTT (web players, streaming)</option>
+        </select>
+      </label>
+      <label>Output File
+        <div class="row-inline">
+          <input id="subs-output-path" type="text" readonly placeholder="Choose output file…" title="Destination subtitle file" />
+          <button id="btn-subs-browse" title="Choose subtitle output path">Browse</button>
+        </div>
+      </label>
+      <div class="modal-footer">
+        <button id="btn-subs-export-all" title="Export ASS, SRT, and VTT in one operation">Export All Formats</button>
+        <button id="btn-subs-export" class="btn-primary" title="Write subtitle file to disk">Export</button>
+        <button id="btn-subs-cancel" title="Close without exporting">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-cut" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-cut-title">
+    <div class="modal-box">
+      <h2 id="modal-cut-title">Cut Video</h2>
+      <p class="dim-text">Trim a segment with stream copy (fast, no quality loss). Use IN/OUT on a row or playhead to set range.</p>
+      <label>Start (ms)
+        <input id="cut-start-ms" type="number" min="0" step="100" title="Cut start time in milliseconds" />
+      </label>
+      <label>End (ms)
+        <input id="cut-end-ms" type="number" min="0" step="100" title="Cut end time in milliseconds" />
+      </label>
+      <p class="dim-text" id="cut-range-display"></p>
+      <label>Output File
+        <div class="row-inline">
+          <input id="cut-output-path" type="text" readonly placeholder="Choose output file…" title="Trimmed video destination" />
+          <button id="btn-cut-browse" title="Choose cut output path">Browse</button>
+        </div>
+      </label>
+      <div id="cut-progress" class="hidden">
+        <div class="progress-wrap">
+          <div id="cut-progress-bar" class="progress-bar" style="--progress:0"></div>
+        </div>
+        <span id="cut-progress-text"></span>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-cut-start" class="btn-primary" title="Start video cut with FFmpeg">Cut</button>
+        <button id="btn-cut-cancel" title="Close cut dialog">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-find-replace" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-find-replace-title">
+    <div class="modal-box">
+      <h2 id="modal-find-replace-title">Find &amp; Replace</h2>
+      <p class="dim-text">Replace text across subtitle rows. Shortcut: Ctrl+H</p>
+      <label>Find
+        <input id="fr-find" type="text" placeholder="Text to find…" />
+      </label>
+      <label>Replace with
+        <input id="fr-replace" type="text" placeholder="Replacement…" />
+      </label>
+      <div class="fr-tracks">
+        <label><input type="checkbox" id="fr-romaji" checked /> Romaji</label>
+        <label><input type="checkbox" id="fr-indo" checked /> Indo</label>
+        <label><input type="checkbox" id="fr-english" checked /> English</label>
+      </div>
+      <div class="fr-options">
+        <label><input type="checkbox" id="fr-case-insensitive" /> Case insensitive</label>
+        <label><input type="checkbox" id="fr-regex" /> Regex</label>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-fr-apply" class="btn-primary">Replace All</button>
+        <button id="btn-fr-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-scale" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-scale-title">
+    <div class="modal-box">
+      <h2 id="modal-scale-title">Scale Timing</h2>
+      <p class="dim-text">Scale all row durations by a factor around the current playhead (e.g. 1.05 = 5% longer).</p>
+      <label>Scale factor
+        <input id="scale-factor" type="number" min="0.1" max="10" step="0.01" value="1.0" />
+      </label>
+      <div class="modal-footer">
+        <button id="btn-scale-apply" class="btn-primary">Apply</button>
+        <button id="btn-scale-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-shortcuts" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-shortcuts-title">
+    <div class="modal-box modal-wide">
+      <h2 id="modal-shortcuts-title">Keyboard Shortcuts</h2>
+      <p class="dim-text">Click a binding, then press the desired key combination. Saved to settings.</p>
+      <div id="shortcuts-list" class="shortcuts-list"></div>
+      <div class="modal-footer">
+        <button id="btn-shortcuts-reset" title="Restore default bindings">Reset Defaults</button>
+        <button id="btn-shortcuts-save" class="btn-primary">Save</button>
+        <button id="btn-shortcuts-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-anim" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-anim-title">
+    <div class="modal-box">
+      <h2 id="modal-anim-title">Row Animation Override</h2>
+      <div id="anim-content"></div>
+      <div class="modal-footer">
+        <button id="btn-anim-save" title="Apply animation overrides to this row">Apply</button>
+        <button id="btn-anim-reset" title="Remove per-row overrides and use global defaults">Reset to Default</button>
+        <button id="btn-anim-cancel" title="Close without saving">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-close-video" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-close-video-title">
+    <div class="modal-box">
+      <h2 id="modal-close-video-title">Close Video</h2>
+      <p data-choice-message class="dim-text">What should happen to subtitle rows?</p>
+      <div class="modal-footer choice-footer">
+        <button class="btn-primary" data-choice="keep" title="Unload video but keep all subtitle rows">Keep Rows</button>
+        <button data-choice="clear" title="Unload video and remove all subtitle rows">Clear Rows</button>
+        <button data-choice="cancel" title="Cancel and keep video loaded">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-duplicate-row" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-duplicate-row-title">
+    <div class="modal-box">
+      <h2 id="modal-duplicate-row-title">Duplicate Row</h2>
+      <p data-choice-message class="dim-text">Where should the duplicate be placed?</p>
+      <div class="modal-footer choice-footer">
+        <button class="btn-primary" data-choice="below" title="Insert duplicate directly below the original row">Below Original</button>
+        <button data-choice="bottom" title="Add duplicate at the end of the list">At Bottom</button>
+        <button data-choice="cancel" title="Cancel duplication">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

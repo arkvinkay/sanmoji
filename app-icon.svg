@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="96" y1="80" x2="928" y2="944" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F1728"/>
+      <stop offset="1" stop-color="#0A101C"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="180" y1="160" x2="844" y2="864" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1B2742"/>
+      <stop offset="1" stop-color="#121C31"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="240" y1="220" x2="784" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5B9DFF"/>
+      <stop offset="0.5" stop-color="#8A7BFF"/>
+      <stop offset="1" stop-color="#3FD9B8"/>
+    </linearGradient>
+    <linearGradient id="accentSoft" x1="300" y1="300" x2="724" y2="700" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7DC4FF"/>
+      <stop offset="1" stop-color="#6BFFD4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(780 260) rotate(130) scale(220)">
+      <stop stop-color="#7B8CFF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#7B8CFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="120" y="110" width="784" height="804" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="240" fill="url(#bg)"/>
+  <circle cx="780" cy="260" r="220" fill="url(#glow)"/>
+
+  <rect x="156" y="148" width="712" height="728" rx="88" fill="url(#panel)" filter="url(#shadow)"/>
+  <rect x="156" y="148" width="712" height="728" rx="88" stroke="rgba(255,255,255,0.09)" stroke-width="2"/>
+
+  <rect x="212" y="204" width="600" height="420" rx="40" fill="#0D1526"/>
+  <rect x="212" y="204" width="600" height="420" rx="40" stroke="rgba(255,255,255,0.07)" stroke-width="2"/>
+
+  <rect x="212" y="204" width="600" height="64" rx="40" fill="#121D34"/>
+  <rect x="212" y="236" width="600" height="32" fill="#121D34"/>
+  <circle cx="252" cy="236" r="8" fill="#5B9DFF"/>
+  <circle cx="278" cy="236" r="8" fill="#8A7BFF"/>
+  <circle cx="304" cy="236" r="8" fill="#3FD9B8"/>
+  <rect x="340" y="226" width="92" height="20" rx="10" fill="url(#accent)" opacity="0.9"/>
+  <rect x="448" y="226" width="72" height="20" rx="10" fill="#2A3558"/>
+  <rect x="534" y="226" width="72" height="20" rx="10" fill="#2A3558"/>
+
+  <g>
+    <rect x="244" y="296" width="536" height="52" rx="16" fill="#101B31"/>
+    <rect x="258" y="308" width="44" height="28" rx="9" fill="#1A2744"/>
+    <path d="M268 322H292" stroke="#6BFFD4" stroke-width="3" stroke-linecap="round"/>
+    <rect x="320" y="312" width="128" height="9" rx="4.5" fill="#B6CAFF"/>
+    <rect x="320" y="327" width="96" height="7" rx="3.5" fill="#4E6088"/>
+    <rect x="478" y="312" width="108" height="9" rx="4.5" fill="#D4C7FF"/>
+    <rect x="478" y="327" width="88" height="7" rx="3.5" fill="#4E6088"/>
+    <rect x="616" y="312" width="118" height="9" rx="4.5" fill="#BFF7E8"/>
+    <rect x="616" y="327" width="92" height="7" rx="3.5" fill="#4E6088"/>
+  </g>
+
+  <g opacity="0.92">
+    <rect x="244" y="360" width="536" height="52" rx="16" fill="#0F182C"/>
+    <rect x="258" y="372" width="44" height="28" rx="9" fill="#1A2744"/>
+    <path d="M268 386H292M268 378H292" stroke="#5B9DFF" stroke-width="3" stroke-linecap="round"/>
+    <rect x="320" y="376" width="142" height="9" rx="4.5" fill="#B6CAFF"/>
+    <rect x="320" y="391" width="108" height="7" rx="3.5" fill="#4E6088"/>
+    <rect x="478" y="376" width="96" height="9" rx="4.5" fill="#D4C7FF"/>
+    <rect x="478" y="391" width="120" height="7" rx="3.5" fill="#4E6088"/>
+    <rect x="616" y="376" width="88" height="9" rx="4.5" fill="#BFF7E8"/>
+    <rect x="616" y="391" width="104" height="7" rx="3.5" fill="#4E6088"/>
+  </g>
+
+  <g>
+    <rect x="244" y="424" width="536" height="52" rx="16" fill="#101B31"/>
+    <rect x="258" y="436" width="44" height="28" rx="9" fill="#1A2744"/>
+    <circle cx="280" cy="450" r="9" stroke="#8A7BFF" stroke-width="2.5"/>
+    <path d="M280 441V459M271 450H289" stroke="#8A7BFF" stroke-width="2.5" stroke-linecap="round"/>
+    <rect x="320" y="440" width="112" height="9" rx="4.5" fill="#B6CAFF"/>
+    <rect x="320" y="455" width="128" height="7" rx="3.5" fill="#4E6088"/>
+    <rect x="478" y="440" width="120" height="9" rx="4.5" fill="#D4C7FF"/>
+    <rect x="478" y="455" width="82" height="7" rx="3.5" fill="#4E6088"/>
+    <rect x="616" y="440" width="104" height="9" rx="4.5" fill="#BFF7E8"/>
+    <rect x="616" y="455" width="96" height="7" rx="3.5" fill="#4E6088"/>
+  </g>
+
+  <g opacity="0.72">
+    <rect x="244" y="488" width="536" height="52" rx="16" fill="#0F182C"/>
+    <rect x="320" y="504" width="96" height="9" rx="4.5" fill="#B6CAFF"/>
+    <rect x="478" y="504" width="132" height="9" rx="4.5" fill="#D4C7FF"/>
+    <rect x="616" y="504" width="78" height="9" rx="4.5" fill="#BFF7E8"/>
+    <rect x="320" y="519" width="116" height="7" rx="3.5" fill="#4E6088"/>
+    <rect x="478" y="519" width="104" height="7" rx="3.5" fill="#4E6088"/>
+    <rect x="616" y="519" width="112" height="7" rx="3.5" fill="#4E6088"/>
+  </g>
+
+  <rect x="212" y="652" width="600" height="48" rx="18" fill="#101A2D"/>
+  <path d="M244 676C264 666 280 686 300 676C320 666 336 686 356 676C376 666 392 686 412 676C432 666 448 686 468 676C488 666 504 686 524 676C544 666 560 686 580 676C600 666 616 686 636 676C656 666 672 686 692 676C712 666 728 686 748 676" stroke="url(#accentSoft)" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="512" cy="676" r="8" fill="url(#accent)"/>
+  <path d="M512 660V692" stroke="#E8F2FF" stroke-width="2.5" stroke-linecap="round"/>
+
+  <circle cx="512" cy="820" r="96" fill="#121E35" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+  <circle cx="512" cy="820" r="96" fill="url(#accent)" opacity="0.12"/>
+  <text x="512" y="858" text-anchor="middle" font-family="'Noto Sans CJK JP','Yu Gothic UI','MS PGothic',sans-serif" font-size="108" font-weight="800" fill="url(#accent)">三</text>
+</svg>

@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Default capabilities for SanMoji","local":true,"windows":["main"],"permissions":["core:default","core:event:default","dialog:default","fs:default","shell:default","allow-app-commands"]}}

@@ -1,0 +1,27 @@
+{
+  "name": "sanmoji",
+  "version": "1.0.0",
+  "description": "SanMoji — three-track lyric subtitle studio (Romaji / Indo / English) with real-time preview and FFmpeg export",
+  "license": "MIT",
+  "author": "Arkvin",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "lint": "eslint src/js",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml && node tests/validation.test.js",
+    "clean": "cargo clean --manifest-path src-tauri/Cargo.toml",
+    "check": "npm run lint && cargo test --manifest-path src-tauri/Cargo.toml && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "eslint": "^8.57.0"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0"
+  }
+}
