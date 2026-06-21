@@ -880,7 +880,7 @@ impl ExportProgressTracker {
 
     fn ingest(&mut self, app: &AppHandle, chunk: &str) {
         self.pending.push_str(chunk);
-        while let Some(idx) = self.pending.find(|c| c == '\n' || c == '\r') {
+        while let Some(idx) = self.pending.find(|c| ['\n', '\r'].contains(&c)) {
             let line = self.pending[..idx].trim().to_string();
             self.pending = self.pending[idx + 1..].to_string();
             if !line.is_empty() {

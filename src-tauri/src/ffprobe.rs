@@ -337,9 +337,7 @@ pub fn get_waveform_peaks(
         .wait()
         .map_err(|e| format!("Could not wait for waveform extraction: {e}"))?;
 
-    if let Err(e) = read_result {
-        return Err(e);
-    }
+    read_result?;
 
     if !status.success() {
         return Err(format!(

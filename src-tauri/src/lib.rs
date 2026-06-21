@@ -45,8 +45,8 @@ pub fn run() {
         })
         .setup(|app| {
             app.manage(VideoPreviewState::new());
-            commands::init_app_state(&app.handle())
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            commands::init_app_state(app.handle())
+                .map_err(std::io::Error::other)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
