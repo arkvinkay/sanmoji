@@ -212,7 +212,7 @@ export function splitRow(id, splitMs) {
   return right.id;
 }
 
-function mergeTextField(existing, incoming, fieldName) {
+function mergeTextField(existing, incoming, _fieldName) {
   const a = (existing ?? '').trim();
   const b = (incoming ?? '').trim();
   if (a && b) {

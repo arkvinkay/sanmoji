@@ -33,7 +33,7 @@ let suppressTimeClickUntil = 0;
 function hasAnimOverride(anim) {
   if (!anim || typeof anim !== 'object') return false;
   return Object.entries(anim).some(([k, v]) => {
-    if (v == null || v === '') return false;
+    if (v === null || v === undefined || v === '') return false;
     if ((k === 'raw_ass_in' || k === 'raw_ass_out') && !String(v).trim()) return false;
     return true;
   });

@@ -2,7 +2,7 @@
  * Modal logic: Settings, Export, Batch, Animation Override, Relink
  */
 import { state, updateRow, scaleAllRows } from './state.js';
-import { animOptions, animLabel, msToDisplay, escHtml, setProgressBar } from './utils.js';
+import { animOptions, msToDisplay, escHtml, setProgressBar } from './utils.js';
 import { renderRows } from './editor.js';
 import { invoke, dialog } from './tauri.js';
 import { pushHistory } from './history.js';
@@ -141,7 +141,6 @@ export async function openSettingsModal(initialTab = 'layout') {
     toast('Settings not loaded yet', 'error');
     return;
   }
-  const modal = document.getElementById('modal-settings');
   const content = document.getElementById('settings-content');
   const s = state.settings;
 

@@ -157,7 +157,8 @@ async function loadVideoSource(path) {
   video.load();
 
   showVideoLoading(true, 'Reading metadata…', 22);
-  let [info, metaOk] = await Promise.all([probeVideo(path), waitForVideoMetadata()]);
+  const [info, metaOkResult] = await Promise.all([probeVideo(path), waitForVideoMetadata()]);
+  let metaOk = metaOkResult;
   if (!metaOk && assetSrc !== src) {
     console.warn('Stream preview failed, retrying asset protocol:', video.error);
     video.src = assetSrc;
