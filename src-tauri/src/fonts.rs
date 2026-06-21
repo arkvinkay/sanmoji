@@ -163,7 +163,7 @@ pub fn collect_system_fonts() -> Vec<FontInfo> {
     }
 
     let mut fonts: Vec<FontInfo> = map.into_values().collect();
-    fonts.sort_by(|a, b| a.family.to_lowercase().cmp(&b.family.to_lowercase()));
+    fonts.sort_by_key(|a| a.family.to_lowercase());
     fonts
 }
 
