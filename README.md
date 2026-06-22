@@ -1,6 +1,6 @@
 # SanMoji
 
-![Version](https://img.shields.io/badge/version-1.0.0-orange)
+![Version](https://img.shields.io/badge/version-1.0.1-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-24c8db)
@@ -12,6 +12,16 @@
 I built SanMoji because I needed a simple desktop tool to burn lyric subtitles onto concert and MV videos — set IN/OUT on a waveform, style three text lines, preview on the video, and export with FFmpeg. No cloud, no subscription, no After Effects timeline for every line.
 
 The three columns are labeled **Romaji**, **Indo**, and **English** because that matches my usual workflow (JP readings + Indonesian + English translations). They are just names: you can type **any language** in any column — Korean, Thai, Spanish, instrumental credits, or leave tracks empty. Export and preview treat them as three independent text lines.
+
+## What's New in v1.0.1
+
+- **Fixed:** GitHub link in About now points to [arkvinkay/sanmoji](https://github.com/arkvinkay/sanmoji)
+- **Fixed:** Space no longer double-toggles play/pause
+- **Fixed:** Smoother subtitle animation preview during playback (~60 fps)
+- **Fixed:** Waveform time labels stay readable at high zoom; timeline blocks sync with waveform zoom/scroll
+- **Changed:** Removed CPS and character count column from the row editor
+- **Changed:** Removed Live Preview panel from Settings → Layout Y (main video preview still updates)
+- **Changed:** Bundle identifier `id.app.arkvin.sanmoji` with automatic data migration from `id.arkvin.sanmoji.app`
 
 ## Built with vibes
 
@@ -35,7 +45,6 @@ This app is **fully vibe coded** — designed and implemented iteratively with A
 ### Layout & typography
 - **Settings → Layout Y** tab: **Position Y** only (vertical placement per track)
 - **Romaji / Indo / English** tabs: font, size, color, outline, bold, shadow, and default animation
-- **Live preview** in settings modal (matches export scale)
 - Style presets (save/load/delete)
 - Watermark image overlay (position, size, margins)
 
@@ -114,7 +123,8 @@ v1/
 
 ## Tauri configuration notes
 
-- **Identifier:** `id.arkvin.sanmoji.app` (reverse-domain bundle ID)
+- **Identifier:** `id.app.arkvin.sanmoji` (reverse-domain bundle ID)
+- **Upgrading from v1.0.0:** The Windows installer copies existing data from `%APPDATA%\id.arkvin.sanmoji.app` when the new folder is still empty. If you run the app without going through the installer (or migration was skipped), SanMoji asks on first launch whether to **Import** settings/autosave/cache from the old path or **Start Fresh**. Choose Import to copy; nothing is overwritten if the new folder already has data.
 - **Asset protocol scope (S4):** Allowed paths include standard user folders (`$DOCUMENT`, `$DOWNLOAD`, `$VIDEO`, `$DESKTOP`, `$HOME`, `$TEMP`, `$APPDATA`) plus `?:/**` for Windows drive letters. The drive wildcard is **required** so users can open videos from any mounted drive (e.g. `D:\Concerts\...`). This is intentional — the webview only reads files the user explicitly opens or that are referenced by a saved project.
 - **Shell permissions (S5):** FFmpeg is executed from the Rust backend via Tauri commands, not from frontend JavaScript. `shell:allow-execute` is **not** granted to the webview; only `shell:default` (e.g. opening external URLs) remains.
 

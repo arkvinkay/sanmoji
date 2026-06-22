@@ -1,5 +1,6 @@
 mod ass;
 mod commands;
+mod migration;
 mod fonts;
 mod ffmpeg_fetch;
 mod ffprobe;
@@ -74,6 +75,9 @@ pub fn run() {
             commands::export_subtitle_file,
             commands::cut_video,
             commands::cancel_export,
+            commands::get_legacy_migration_offer,
+            commands::import_legacy_data,
+            commands::decline_legacy_migration,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

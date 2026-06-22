@@ -8,7 +8,7 @@ import {
 } from './state.js';
 import { msToDisplay, displayToMs, secToMs, snapMs, animLabel, escHtml, throttle } from './utils.js';
 import {
-  CPS_WARN_THRESHOLD, GAP_WARN_MS,
+  GAP_WARN_MS,
   ROW_HEIGHT, VISIBLE_BUFFER, MAX_VISIBLE_ROWS,
   SCROLL_RENDER_THROTTLE_MS, DEFAULT_ROW_MS,
 } from './constants.js';
@@ -100,29 +100,6 @@ export function renderRows() {
   renderTimeline();
 }
 
-function rowCharCounts(row) {
-  return {
-    romaji: (row.romaji ?? '').length,
-    indo: (row.indo ?? '').length,
-    english: (row.english ?? '').length,
-  };
-}
-
-function rowCharCountLabel(row) {
-  const c = rowCharCounts(row);
-  if (!c.romaji && !c.indo && !c.english) return '';
-  return `R:${c.romaji} I:${c.indo} E:${c.english}`;
-}
-
-function rowCps(row) {
-  const dur = (row.end_ms - row.start_ms) / 1000;
-  if (dur <= 0) return null;
-  const c = rowCharCounts(row);
-  const chars = Math.max(c.romaji, c.indo, c.english);
-  if (!chars) return null;
-  return chars / dur;
-}
-
 function scrollActiveRowIntoView() {
   if (!state.activeRowId || !scrollEl) return;
   const el = container?.querySelector(`.lyric-row[data-id="${state.activeRowId}"]`);
@@ -163,14 +140,6 @@ function refreshRowEl(el, row) {
   const endBtn = el.querySelector('[data-action="set-end"]');
   if (startBtn) startBtn.textContent = msToDisplay(row.start_ms);
   if (endBtn) endBtn.textContent = msToDisplay(row.end_ms);
-  const cpsEl = el.querySelector('.row-cps');
-  const cps = rowCps(row);
-  const charLabel = rowCharCountLabel(row);
-  if (cpsEl) {
-    const cpsPart = cps !== null ? `CPS ${cps.toFixed(1)}` : '';
-    cpsEl.textContent = [charLabel, cpsPart].filter(Boolean).join(' · ');
-    cpsEl.classList.toggle('cps-warn', cps !== null && cps > CPS_WARN_THRESHOLD);
-  }
   const badgeEl = el.querySelector('.row-badges');
   if (badgeEl) badgeEl.innerHTML = rowGapBadge(row, rows);
   ['romaji', 'indo', 'english'].forEach(f => {
@@ -192,24 +161,15 @@ function buildRowEl(row) {
     ? (hasRaw ? 'raw ASS' : 'custom')
     : animLabel(state.settings?.romaji_anim?.anim_in ?? 'fade');
 
-  const cps = rowCps(row);
   const rows = state.project?.rows ?? [];
-  const cpsClass = cps !== null && cps > CPS_WARN_THRESHOLD ? 'row-cps cps-warn' : 'row-cps';
-  const charLabel = rowCharCountLabel(row);
-  const cpsPart = cps !== null ? `CPS ${cps.toFixed(1)}` : '';
-  const cpsText = [charLabel, cpsPart].filter(Boolean).join(' · ');
 
   el.innerHTML = `
-    <span class="drag-handle" title="Drag to reorder subtitle rows">⠿</span>
+    <span class="drag-handle" title="Drag to reorder subtitle rows">⠿<span class="row-badges">${rowGapBadge(row, rows)}</span></span>
     <button class="time-btn" data-action="set-start" title="Double-click to edit · click to set IN from playhead">${msToDisplay(row.start_ms)}</button>
     <button class="time-btn" data-action="set-end" title="Double-click to edit · click to set OUT from playhead">${msToDisplay(row.end_ms)}</button>
     <input type="text" data-field="romaji" value="${escHtml(row.romaji)}" placeholder="Romaji…" title="Romaji / Japanese reading" />
     <input type="text" data-field="indo"   value="${escHtml(row.indo)}"   placeholder="Indo…" title="Indonesian translation" />
     <input type="text" data-field="english" value="${escHtml(row.english)}" placeholder="English…" title="English translation" />
-    <div class="row-meta">
-      <span class="${cpsClass}" title="Characters per second (reading speed)">${cpsText}</span>
-      <span class="row-badges">${rowGapBadge(row, rows)}</span>
-    </div>
     <button class="${animBadgeClass}" data-action="open-anim" title="Per-row animation override">${animSummary}</button>
     <div class="row-actions">
       <button class="btn-row-action" data-action="duplicate" title="Duplicate this row (choose placement)">⧉</button>

@@ -120,7 +120,7 @@
         <div id="rows-header">
           <span></span><span>Start</span><span>End</span>
           <span>Romaji</span><span>Indo</span><span>English</span>
-          <span>CPS</span><span>Anim</span><span></span>
+          <span>Anim</span><span></span>
         </div>
         <div id="rows-scroll">
           <div id="rows-spacer-top"></div>
@@ -428,6 +428,19 @@
         <button class="btn-primary" data-choice="keep" title="Unload video but keep all subtitle rows">Keep Rows</button>
         <button data-choice="clear" title="Unload video and remove all subtitle rows">Clear Rows</button>
         <button data-choice="cancel" title="Cancel and keep video loaded">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-legacy-migration" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-legacy-migration-title">
+    <div class="modal-box">
+      <h2 id="modal-legacy-migration-title">Import Previous Settings?</h2>
+      <p data-choice-message class="dim-text">We detected settings from a previous SanMoji installation.</p>
+      <ul id="legacy-migration-items" class="dim-text legacy-migration-list"></ul>
+      <p class="dim-text legacy-migration-hint">Import copies your saved settings, autosave draft, and cached files into this version. Start fresh keeps the new data folder empty.</p>
+      <div class="modal-footer choice-footer">
+        <button class="btn-primary" data-choice="import" title="Copy settings and data from the previous installation">Import</button>
+        <button data-choice="fresh" title="Do not copy; use default settings">Start Fresh</button>
       </div>
     </div>
   </div>

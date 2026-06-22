@@ -334,9 +334,13 @@ function drawWatermark(rect, currentMs) {
 
 export function renderOverlay(currentMs) {
   if (!ctx || !canvas) return;
-  const key = buildRenderKey(currentMs);
-  if (key === lastRenderKey) return;
-  lastRenderKey = key;
+  const video = document.getElementById('video-player');
+  const isPlaying = video && !video.paused && !video.ended;
+  if (!isPlaying) {
+    const key = buildRenderKey(currentMs);
+    if (key === lastRenderKey) return;
+    lastRenderKey = key;
+  }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!state.settings || !state.project) return;

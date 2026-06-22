@@ -1,8 +1,8 @@
 /** App metadata — single source for UI & About dialog */
 export const APP_NAME = 'SanMoji';
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.1';
 export const APP_CREATOR = 'Arkvin';
-export const APP_GITHUB = 'https://github.com/arkvin/sanmoji';
+export const APP_GITHUB = 'https://github.com/arkvinkay/sanmoji';
 export const APP_TAGLINE = '三言字幕 — Romaji · Indo · English lyric subtitle studio';
 export const APP_DESCRIPTION =
   'SanMoji (三 + 文字) is a desktop app for authoring three-track lyric subtitles — Romaji, Indonesian, and English — ' +

@@ -17,7 +17,7 @@ import {
   openSettingsModal, openExportModal, openBatchModal,
   openRelinkModal, updateExportProgress, openAboutModal,
   openExportSubsModal, openCutVideoModal, updateCutProgress, openFindReplaceModal,
-  openShortcutsModal, promptCloseVideo, promptDuplicateRow,
+  openShortcutsModal, promptCloseVideo, promptDuplicateRow, promptLegacyMigration,
 } from './modals.js';
 import { pushHistory, undo, redo, clearHistory, updateHistoryIndicator } from './history.js';
 import { toast, setStatus } from './toast.js';
@@ -30,6 +30,27 @@ const video = document.getElementById('video-player');
 let waveformLoadGen = 0;
 let isVideoLoading = false;
 let lastVideoDimensions = { w: 0, h: 0 };
+let overlayRafId = null;
+
+function startOverlayLoop() {
+  if (overlayRafId || !video) return;
+  const tick = () => {
+    if (!video || video.paused || video.ended) {
+      overlayRafId = null;
+      return;
+    }
+    renderOverlay(secToMs(video.currentTime));
+    overlayRafId = requestAnimationFrame(tick);
+  };
+  overlayRafId = requestAnimationFrame(tick);
+}
+
+function stopOverlayLoop() {
+  if (overlayRafId) {
+    cancelAnimationFrame(overlayRafId);
+    overlayRafId = null;
+  }
+}
 
 export function videoLoadingActive() {
   return isVideoLoading;
@@ -372,12 +393,31 @@ async function tryRestoreAutosave() {
   }
 }
 
+async function offerLegacyMigration() {
+  try {
+    const offer = await invoke('get_legacy_migration_offer');
+    if (!offer) return;
+    const choice = await promptLegacyMigration(offer);
+    if (choice === 'import') {
+      const result = await invoke('import_legacy_data');
+      state.settings = await fetchSettings();
+      const count = result?.copied?.length ?? 0;
+      toast(`Imported ${count} item(s) from previous installation`, 'success');
+    } else if (choice === 'fresh') {
+      await invoke('decline_legacy_migration');
+    }
+  } catch (err) {
+    console.warn('Legacy migration offer failed:', err);
+  }
+}
+
 async function boot() {
   try {
     if (!isTauri()) {
       toast('Running outside Tauri — file features disabled', 'warning');
     }
     state.settings = await fetchSettings();
+    await offerLegacyMigration();
     applyTheme(state.settings?.theme);
     state.fonts = await fetchSystemFonts();
     const snapToggle = document.getElementById('snap-toggle');
@@ -478,9 +518,22 @@ video?.addEventListener('timeupdate', () => {
   const timeEl = document.getElementById('time-display');
   if (timeEl) timeEl.textContent = msToDisplay(ms);
   highlightActiveRow(ms);
-  renderOverlay(ms);
   updateWaveformPlayhead();
 });
+
+video?.addEventListener('play', startOverlayLoop);
+video?.addEventListener('pause', () => {
+  stopOverlayLoop();
+  if (video) renderOverlay(secToMs(video.currentTime));
+});
+video?.addEventListener('ended', () => {
+  stopOverlayLoop();
+  if (video) renderOverlay(secToMs(video.currentTime));
+});
+
+video?.addEventListener('keydown', e => {
+  if (e.code === 'Space') e.preventDefault();
+}, true);
 
 function getSnapMs() {
   return snapMs(secToMs(video?.currentTime ?? 0), state.settings?.snap_to_second);
@@ -741,6 +794,7 @@ function handleShortcutAction(actionId, e) {
   switch (actionId) {
     case 'playPause':
       if (!video) return;
+      if (e?.repeat) return;
       video.paused ? video.play() : video.pause();
       break;
     case 'save':
@@ -820,11 +874,16 @@ document.addEventListener('keydown', e => {
       return;
     }
 
-    e.preventDefault();
+    if (actionId === 'playPause') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    } else {
+      e.preventDefault();
+    }
     handleShortcutAction(actionId, e);
     return;
   }
-});
+}, true);
 
 document.getElementById('btn-save-project')?.addEventListener('click', () => saveProject());
 

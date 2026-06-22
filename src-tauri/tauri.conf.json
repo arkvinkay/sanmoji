@@ -1,7 +1,7 @@
 {
   "productName": "SanMoji",
-  "version": "1.0.0",
-  "identifier": "id.arkvin.sanmoji.app",
+  "version": "1.0.1",
+  "identifier": "id.app.arkvin.sanmoji",
   "build": {
     "frontendDist": "../src"
   },
