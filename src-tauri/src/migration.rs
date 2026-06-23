@@ -85,6 +85,16 @@ fn write_file_atomic(path: &Path, content: &str) -> Result<(), String> {
         .map_err(|e| format!("Could not save {}: {e}", path.display()))
 }
 
+fn parse_migration_state(raw: &str) -> Result<MigrationState, serde_json::Error> {
+    serde_json::from_str(raw)
+}
+
+fn recover_corrupt_state_file(path: &Path, err: &serde_json::Error) {
+    eprintln!("migration state corrupt, resetting: {err}");
+    let bak = path.with_extension("json.bak");
+    let _ = fs::rename(path, &bak);
+}
+
 fn read_state(app: &AppHandle) -> Result<MigrationState, String> {
     let path = state_path(app)?;
     if !path.exists() {
@@ -92,12 +102,10 @@ fn read_state(app: &AppHandle) -> Result<MigrationState, String> {
     }
     let raw = fs::read_to_string(&path)
         .map_err(|e| format!("Could not read migration state: {e}"))?;
-    match serde_json::from_str(&raw) {
+    match parse_migration_state(&raw) {
         Ok(state) => Ok(state),
         Err(e) => {
-            eprintln!("migration state corrupt, resetting: {e}");
-            let bak = path.with_extension("json.bak");
-            let _ = fs::rename(&path, &bak);
+            recover_corrupt_state_file(&path, &e);
             Ok(MigrationState::default())
         }
     }
@@ -275,15 +283,23 @@ mod tests {
     }
 
     #[test]
-    fn read_state_tolerates_corrupt_json() {
+    fn parse_migration_state_rejects_corrupt_json() {
+        assert!(parse_migration_state("{not json").is_err());
+        let state = parse_migration_state(r#"{"declined":false,"imported":false}"#).unwrap();
+        assert!(!state.imported);
+        assert!(!state.declined);
+    }
+
+    #[test]
+    fn recover_corrupt_state_file_renames_to_bak() {
         let dir = std::env::temp_dir().join(format!("sanmoji-mig-test-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&dir).unwrap();
         let path = dir.join(STATE_FILE);
         fs::write(&path, "{not json").unwrap();
-        let raw = fs::read_to_string(&path).unwrap();
-        let state: MigrationState = serde_json::from_str(&raw).unwrap_or_default();
-        assert!(!state.imported);
-        assert!(!state.declined);
+        let err = parse_migration_state("{not json").unwrap_err();
+        recover_corrupt_state_file(&path, &err);
+        assert!(!path.exists());
+        assert!(dir.join(".legacy-migration.json.bak").exists());
         let _ = fs::remove_dir_all(&dir);
     }
 }

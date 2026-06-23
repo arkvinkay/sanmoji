@@ -615,11 +615,13 @@ function drawWaveform() {
 }
 
 function drawWaveformPlayheadOnly() {
-  if (!wfCtx || !waveformCanvas || !wfStaticCanvas) return;
+  if (!wfCtx || !waveformCanvas || !wfStaticCanvas) return false;
   const dur = durationMs();
-  if (dur <= 0) return;
+  if (dur <= 0) return false;
   const w = waveformCanvas.width;
   const h = waveformCanvas.height;
+  const scrollBefore = wfScroll;
+  const zoomBefore = wfZoom;
 
   const video = document.getElementById('video-player');
   const playMs = video ? video.currentTime * 1000 : 0;
@@ -633,13 +635,12 @@ function drawWaveformPlayheadOnly() {
 
   wfCtx.drawImage(wfStaticCanvas, 0, 0);
   drawPlayhead(wfCtx, w, h, dur, true);
+  return wfScroll !== scrollBefore || wfZoom !== zoomBefore;
 }
 
 export function updateWaveformPlayhead() {
-  const scrollBefore = wfScroll;
-  const zoomBefore = wfZoom;
-  drawWaveformPlayheadOnly();
-  if (wfScroll !== scrollBefore || wfZoom !== zoomBefore) {
+  const windowChanged = drawWaveformPlayheadOnly();
+  if (windowChanged) {
     renderTimeline();
   } else {
     drawTimelinePlayheadOnly();
