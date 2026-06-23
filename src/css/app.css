@@ -40,7 +40,7 @@
   --row-h: 52px;
   --toolbar-h: 44px;
   --status-h: 26px;
-  --grid-cols: 20px 90px 90px 1fr 1fr 1fr 56px 72px 96px;
+  --grid-cols: 20px 90px 90px 1fr 1fr 1fr 72px 96px;
 }
 
 /* Light */
@@ -368,6 +368,13 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 #row-search::placeholder { color: var(--text-dim); }
 
 .dim-text { color: var(--text-dim); font-size: 11px; }
+.legacy-migration-list {
+  margin: 8px 0 10px 18px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.legacy-migration-hint { margin-top: 4px; }
 .recent-wrap select {
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -527,16 +534,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .choice-footer { flex-wrap: wrap; gap: 8px; }
 .choice-footer button { flex: 1 1 auto; min-width: 120px; }
 
-.row-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  font-size: 10px;
-  line-height: 1.2;
-}
-.row-cps { color: var(--text-dim); font-family: monospace; white-space: nowrap; }
-.row-cps.cps-warn { color: var(--warning); font-weight: 600; }
+.drag-handle .row-badges { display: flex; gap: 2px; margin-top: 2px; justify-content: center; }
 .row-badges { display: flex; gap: 2px; }
 .row-badge { font-size: 11px; cursor: help; }
 .row-badge.overlap { color: var(--overlap); }
@@ -855,22 +853,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   align-items: start;
 }
 .layout-controls { display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
-.layout-preview-panel {
-  position: sticky;
-  top: 0;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-}
-#settings-preview-canvas {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 6px;
-  background: var(--video-bg);
-  display: block;
-}
-.preview-scale-hint { font-size: 10px; margin-top: 6px; text-align: center; }
+
 .layout-track {
   padding: 10px 12px;
   background: var(--surface2);
@@ -1001,7 +984,7 @@ small { color: var(--text-dim); font-size: 11px; }
     border-bottom: 1px solid var(--border);
   }
   #editor-panel { min-height: 0; }
-  :root { --grid-cols: 18px 72px 72px 1fr 1fr 1fr 48px 60px 80px; }
+  :root { --grid-cols: 18px 72px 72px 1fr 1fr 1fr 60px 80px; }
 }
 
 @media (max-width: 720px) {

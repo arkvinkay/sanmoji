@@ -25,5 +25,8 @@ commands.allow = [
   "track_recent_video",
   "export_subtitle_file",
   "cut_video",
-  "cancel_export"
+  "cancel_export",
+  "get_legacy_migration_offer",
+  "import_legacy_data",
+  "decline_legacy_migration"
 ]

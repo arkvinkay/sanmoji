@@ -50,7 +50,7 @@ export function initTimeline() {
 
   canvas.addEventListener('click', e => {
     if (tlDragId) return;
-    seekFromCanvas(e, canvas, false);
+    seekFromCanvas(e, canvas, wfZoom > 1);
   });
   canvas.addEventListener('mousedown', onTimelineDragStart);
   canvas.addEventListener('mousemove', onTimelineDragOver);
@@ -159,7 +159,9 @@ export function setWaveformZoom(next, anchorMs = null) {
   clampScroll();
   updateZoomLabel();
   invalidateWaveformCache();
+  invalidateTimelineCache();
   drawWaveform();
+  renderTimeline();
 }
 
 export function resetWaveformView() {
@@ -167,7 +169,9 @@ export function resetWaveformView() {
   wfScroll = 0;
   updateZoomLabel();
   invalidateWaveformCache();
+  invalidateTimelineCache();
   drawWaveform();
+  renderTimeline();
 }
 
 export function zoomToRow(startMs, endMs) {
@@ -184,7 +188,9 @@ export function zoomToRow(startMs, endMs) {
   clampScroll();
   updateZoomLabel();
   invalidateWaveformCache();
+  invalidateTimelineCache();
   drawWaveform();
+  renderTimeline();
 }
 
 export function clearWaveform() {
@@ -225,7 +231,9 @@ function onWaveformDragMove(e) {
   wfScroll = wfDragStartScroll + deltaScroll;
   clampScroll();
   invalidateWaveformCache();
+  invalidateTimelineCache();
   drawWaveform();
+  renderTimeline();
 }
 
 function onWaveformDragEnd() {
@@ -253,8 +261,16 @@ function onTimelineDragStart(e) {
   const row = state.project.rows[idx];
   const dur = durationMs();
   const x = e.clientX - rect.left;
-  const x1 = (row.start_ms / dur) * canvas.clientWidth;
-  const x2 = (row.end_ms / dur) * canvas.clientWidth;
+  const w = canvas.clientWidth;
+  let x1, x2;
+  if (wfZoom > 1) {
+    const win = visibleWindow(dur);
+    x1 = msToCanvasX(row.start_ms, w, win);
+    x2 = msToCanvasX(row.end_ms, w, win);
+  } else {
+    x1 = (row.start_ms / dur) * w;
+    x2 = (row.end_ms / dur) * w;
+  }
   if (x < x1 - 4 || x > x2 + 4) return;
 
   tlDragId = row.id;
@@ -308,37 +324,121 @@ function seekFromCanvas(e, targetCanvas, useWindow) {
   if (video) video.currentTime = ms / 1000;
 }
 
+const RULER_TICK_INTERVALS_MS = [50, 100, 250, 500, 1000, 5000, 10000, 30000, 60000];
+
+function pickRulerInterval(windowMs, w) {
+  const minLabelPx = 60;
+  for (const interval of RULER_TICK_INTERVALS_MS) {
+    const pxPerTick = (w * interval) / windowMs;
+    if (pxPerTick >= minLabelPx) return interval;
+  }
+  return RULER_TICK_INTERVALS_MS[RULER_TICK_INTERVALS_MS.length - 1];
+}
+
+function formatRulerLabel(ms, showHours) {
+  if (!showHours && ms < 3_600_000) {
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    const s = Math.floor((ms % 60_000) / 1_000);
+    const ms3 = ms % 1_000;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms3).padStart(3, '0')}`;
+  }
+  return msToDisplay(ms);
+}
+
 function drawTimeRuler(context, w, h, dur, useWindow) {
   const win = useWindow ? visibleWindow(dur) : { startMs: 0, windowMs: dur, endMs: dur };
   context.fillStyle = '#2a2a2a';
   context.fillRect(0, 0, w, 10);
-  const tickCount = Math.min(12, Math.max(4, Math.floor(w / 80)));
+
+  const majorInterval = pickRulerInterval(win.windowMs, w);
+  const minorInterval = majorInterval / 5;
+  const showHours = win.endMs >= 3_600_000;
+  const font = '9px sans-serif';
+  context.font = font;
+
+  const firstMajor = Math.ceil(win.startMs / majorInterval) * majorInterval;
+  const firstMinor = Math.ceil(win.startMs / minorInterval) * minorInterval;
+
+  context.fillStyle = '#444';
+  for (let ms = firstMinor; ms <= win.endMs; ms += minorInterval) {
+    if (ms % majorInterval === 0) continue;
+    const x = msToCanvasX(ms, w, win);
+    if (x < 0 || x > w) continue;
+    context.fillRect(x, 4, 1, 4);
+  }
+
   context.fillStyle = '#666';
-  context.font = '9px sans-serif';
-  for (let i = 0; i <= tickCount; i++) {
-    const ms = win.startMs + (win.windowMs * i) / tickCount;
-    const x = (i / tickCount) * w;
+  let lastLabelEnd = -Infinity;
+  for (let ms = firstMajor; ms <= win.endMs; ms += majorInterval) {
+    const x = msToCanvasX(ms, w, win);
+    if (x < 0 || x > w) continue;
     context.fillRect(x, 0, 1, 10);
-    if (i % Math.max(1, Math.floor(tickCount / 4)) === 0) {
-      context.fillText(msToDisplay(ms), x + 2, 9);
-    }
+
+    const label = formatRulerLabel(ms, showHours);
+    const labelW = context.measureText(label).width;
+    const labelX = x + 2;
+    if (labelX + labelW < lastLabelEnd + 4) continue;
+
+    context.fillStyle = 'rgba(26, 26, 26, 0.85)';
+    context.fillRect(labelX - 1, 0, labelW + 4, 10);
+    context.fillStyle = '#aaa';
+    context.fillText(label, labelX, 9);
+    lastLabelEnd = labelX + labelW;
+    context.fillStyle = '#666';
   }
 }
 
-function drawTimelineBlocks(context, w, h, dur) {
+function blockXCoords(startMs, endMs, w, dur, useWindow) {
+  if (useWindow && wfZoom > 1) {
+    const win = visibleWindow(dur);
+    return {
+      x1: msToCanvasX(startMs, w, win),
+      x2: msToCanvasX(endMs, w, win),
+      win,
+    };
+  }
+  return {
+    x1: (startMs / dur) * w,
+    x2: (endMs / dur) * w,
+    win: null,
+  };
+}
+
+function drawTimelineBlocks(context, w, h, dur, useWindow) {
   context.fillStyle = '#1a1a1a';
   context.fillRect(0, 0, w, h);
-  drawTimeRuler(context, w, h, dur, false);
+  drawTimeRuler(context, w, h, dur, useWindow);
 
   if (!state.project?.rows.length) return;
 
   const rowH = Math.min(14, (h - 16) / state.project.rows.length);
   const colors = { romaji: '#ffffff', indo: '#ffd700', english: '#aaddff' };
+  const windowed = useWindow && wfZoom > 1;
 
   state.project.rows.forEach((row, i) => {
+    const { x1, x2, win } = blockXCoords(row.start_ms, row.end_ms, w, dur, useWindow);
+    const rowOffscreen = windowed && win && (row.end_ms < win.startMs || row.start_ms > win.endMs);
     const y = 12 + i * (rowH + 2);
-    const x1 = (row.start_ms / dur) * w;
-    const x2 = (row.end_ms / dur) * w;
+
+    const next = state.project.rows[i + 1];
+    if (next) {
+      if (row.end_ms > next.start_ms) {
+        const ox = blockXCoords(next.start_ms, row.end_ms, w, dur, useWindow);
+        if (ox.x2 > 0 && ox.x1 < w) {
+          context.fillStyle = 'rgba(255, 107, 107, 0.35)';
+          context.fillRect(ox.x1, y - 1, Math.max(ox.x2 - ox.x1, 2), rowH + 4);
+        }
+      } else if (next.start_ms - row.end_ms > GAP_WARN_MS) {
+        const gx = blockXCoords(row.end_ms, next.start_ms, w, dur, useWindow);
+        if (gx.x2 > 0 && gx.x1 < w) {
+          context.fillStyle = 'rgba(68, 170, 255, 0.35)';
+          context.fillRect(gx.x1, y + rowH / 2 - 1, Math.max(gx.x2 - gx.x1, 2), 3);
+        }
+      }
+    }
+
+    if (rowOffscreen) return;
+
     const barW = Math.max(x2 - x1, 2);
     const isActive = row.id === state.activeRowId;
     const isDragOver = tlDragOverIdx === i && tlDragId && tlDragId !== row.id;
@@ -346,21 +446,6 @@ function drawTimelineBlocks(context, w, h, dur) {
     if (isDragOver) {
       context.fillStyle = 'rgba(224, 92, 0, 0.25)';
       context.fillRect(0, y - 1, w, rowH + 6);
-    }
-
-    const next = state.project.rows[i + 1];
-    if (next) {
-      if (row.end_ms > next.start_ms) {
-        const ox1 = (next.start_ms / dur) * w;
-        const ox2 = (row.end_ms / dur) * w;
-        context.fillStyle = 'rgba(255, 107, 107, 0.35)';
-        context.fillRect(ox1, y - 1, Math.max(ox2 - ox1, 2), rowH + 4);
-      } else if (next.start_ms - row.end_ms > GAP_WARN_MS) {
-        const gx1 = (row.end_ms / dur) * w;
-        const gx2 = (next.start_ms / dur) * w;
-        context.fillStyle = 'rgba(68, 170, 255, 0.35)';
-        context.fillRect(gx1, y + rowH / 2 - 1, Math.max(gx2 - gx1, 2), 3);
-      }
     }
 
     [['romaji', 0], ['indo', 1], ['english', 2]].forEach(([track, offset]) => {
@@ -403,7 +488,7 @@ function ensureTimelineStatic(w, h, dur) {
   }
   if (tlStaticDirty) {
     const sctx = tlStaticCanvas.getContext('2d');
-    drawTimelineBlocks(sctx, w, h, dur);
+    drawTimelineBlocks(sctx, w, h, dur, wfZoom > 1);
     tlStaticDirty = false;
   }
 }
@@ -418,7 +503,7 @@ export function renderTimeline() {
 
   ensureTimelineStatic(w, h, dur);
   ctx.drawImage(tlStaticCanvas, 0, 0);
-  drawPlayhead(ctx, w, h, dur, false);
+  drawPlayhead(ctx, w, h, dur, wfZoom > 1);
 
   if (label) {
     const win = visibleWindow(dur);
@@ -433,7 +518,7 @@ function drawTimelinePlayheadOnly() {
   const w = canvas.width;
   const h = canvas.height;
   ctx.drawImage(tlStaticCanvas, 0, 0);
-  drawPlayhead(ctx, w, h, dur, false);
+  drawPlayhead(ctx, w, h, dur, wfZoom > 1);
 }
 
 export async function loadWaveform(videoPath) {
@@ -477,12 +562,14 @@ function drawWaveformStatic(w, h, dur) {
   if (!video?.paused && wfZoom > 1) {
     const winCheck = visibleWindow(dur);
     if (playMs < winCheck.startMs || playMs > winCheck.endMs) {
+      const prevScroll = wfScroll;
       const windowMs = dur / wfZoom;
       const maxScrollMs = Math.max(0, dur - windowMs);
       const targetStart = Math.max(0, playMs - windowMs * 0.1);
       wfScroll = maxScrollMs > 0 ? targetStart / maxScrollMs : 0;
       clampScroll();
       wfStaticDirty = true;
+      if (wfScroll !== prevScroll) invalidateTimelineCache();
     }
   }
 
@@ -528,11 +615,13 @@ function drawWaveform() {
 }
 
 function drawWaveformPlayheadOnly() {
-  if (!wfCtx || !waveformCanvas || !wfStaticCanvas) return;
+  if (!wfCtx || !waveformCanvas || !wfStaticCanvas) return false;
   const dur = durationMs();
-  if (dur <= 0) return;
+  if (dur <= 0) return false;
   const w = waveformCanvas.width;
   const h = waveformCanvas.height;
+  const scrollBefore = wfScroll;
+  const zoomBefore = wfZoom;
 
   const video = document.getElementById('video-player');
   const playMs = video ? video.currentTime * 1000 : 0;
@@ -546,11 +635,16 @@ function drawWaveformPlayheadOnly() {
 
   wfCtx.drawImage(wfStaticCanvas, 0, 0);
   drawPlayhead(wfCtx, w, h, dur, true);
+  return wfScroll !== scrollBefore || wfZoom !== zoomBefore;
 }
 
 export function updateWaveformPlayhead() {
-  drawWaveformPlayheadOnly();
-  drawTimelinePlayheadOnly();
+  const windowChanged = drawWaveformPlayheadOnly();
+  if (windowChanged) {
+    renderTimeline();
+  } else {
+    drawTimelinePlayheadOnly();
+  }
 }
 
 export function bulkShift(deltaMs) {

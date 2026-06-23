@@ -1,4 +1,5 @@
 use crate::ass::build_ass;
+use crate::migration::{self, MigrationOffer};
 use crate::video_stream::VideoPreviewState;
 use crate::ffprobe::{get_waveform_peaks, probe_video, VideoInfo};
 use crate::project::{validate_project_version, Project};
@@ -463,6 +464,34 @@ pub fn save_settings(app: AppHandle, mut settings: AppSettings) -> Result<(), St
         cache.corrupt.store(false, Ordering::Relaxed);
     }
     Ok(())
+}
+
+// ─── Legacy data migration (identifier change) ───────────────────────────────
+
+#[tauri::command]
+pub fn get_legacy_migration_offer(app: AppHandle) -> Result<Option<MigrationOffer>, String> {
+    migration::migration_offer(&app)
+}
+
+#[derive(Clone, Serialize)]
+pub struct LegacyImportResult {
+    pub copied: Vec<String>,
+}
+
+#[tauri::command]
+pub fn import_legacy_data(app: AppHandle) -> Result<LegacyImportResult, String> {
+    let copied = migration::copy_legacy_data(&app)?;
+    let (settings, corrupt) = read_settings_from_disk(&app)?;
+    if let Some(cache) = app.try_state::<SettingsCache>() {
+        *lock_or_recover(&cache.settings, "Settings") = settings;
+        cache.corrupt.store(corrupt, Ordering::Relaxed);
+    }
+    Ok(LegacyImportResult { copied })
+}
+
+#[tauri::command]
+pub fn decline_legacy_migration(app: AppHandle) -> Result<(), String> {
+    migration::decline_migration(&app)
 }
 
 // ─── Project ─────────────────────────────────────────────────────────────────

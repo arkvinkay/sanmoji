@@ -8,7 +8,7 @@ import { invoke, dialog } from './tauri.js';
 import { pushHistory } from './history.js';
 import { toast } from './toast.js';
 import { refreshWatermark, renderOverlay, invalidateOverlay } from './overlay.js';
-import { drawSubtitlePreview } from './preview-render.js';
+
 import {
   APP_NAME, APP_VERSION, APP_TAGLINE, APP_DESCRIPTION,
   APP_CREATOR, APP_GITHUB, formatById,
@@ -331,7 +331,6 @@ export async function openSettingsModal(initialTab = 'layout') {
       const val = state.settings[track]?.[field];
       if (val !== undefined) el.value = val;
     });
-    renderSettingsPreview();
     const video = document.getElementById('video-player');
     renderOverlay(Math.round((video?.currentTime ?? 0) * 1000));
   });
@@ -370,9 +369,6 @@ export async function openSettingsModal(initialTab = 'layout') {
   });
 
   showModal('modal-settings');
-  if (initialTab === 'layout') {
-    requestAnimationFrame(() => renderSettingsPreview());
-  }
 }
 
 function activateSettingsTab(tab) {
@@ -385,7 +381,6 @@ function activateSettingsTab(tab) {
   content.querySelectorAll('.tab-panel').forEach(p => {
     p.classList.toggle('active', p.dataset.panel === tabId);
   });
-  if (tabId === 'layout') requestAnimationFrame(() => renderSettingsPreview());
 }
 
 function layoutTrackRow(key, label, style) {
@@ -404,30 +399,15 @@ function layoutTrackRow(key, label, style) {
 function layoutPanel(s) {
   return `
   <div class="tab-panel" data-panel="layout">
-    <p class="dim-text">Vertical position for each track. Font, size, and color are in the Romaji / Indo / English tabs. Preview matches export scale — click <strong>Save</strong> to persist.</p>
+    <p class="dim-text">Vertical position for each track. Font, size, and color are in the Romaji / Indo / English tabs. Changes update the main video preview — click <strong>Save</strong> to persist.</p>
     <div class="layout-split">
       <div class="layout-controls">
         ${layoutTrackRow('romaji', 'Romaji (三)', s.romaji)}
         ${layoutTrackRow('indo', 'Indonesian', s.indo)}
         ${layoutTrackRow('english', 'English', s.english)}
       </div>
-      <div class="layout-preview-panel">
-        <div class="section-title">Live Preview</div>
-        <canvas id="settings-preview-canvas"></canvas>
-        <p class="dim-text preview-scale-hint">Scaled to ${state.videoW}×${state.videoH} video</p>
-      </div>
     </div>
   </div>`;
-}
-
-function renderSettingsPreview() {
-  const c = document.getElementById('settings-preview-canvas');
-  if (!c || !state.settings) return;
-  const w = c.clientWidth || 360;
-  c.width = w;
-  c.height = Math.round(w * 9 / 16);
-  const ctx = c.getContext('2d');
-  drawSubtitlePreview(ctx, c, state.settings);
 }
 
 function applyLiveSettingChange(el) {
@@ -443,7 +423,6 @@ function applyLiveSettingChange(el) {
     const lbl = document.getElementById(`py-val-${track}`);
     if (lbl) lbl.textContent = (val * 100).toFixed(1) + '%';
   }
-  renderSettingsPreview();
   const video = document.getElementById('video-player');
   renderOverlay(Math.round((video?.currentTime ?? 0) * 1000));
 }
@@ -1529,5 +1508,24 @@ export function promptDuplicateRow() {
 export function promptCloseVideo() {
   return openChoiceModal(document.getElementById('modal-close-video'), {
     message: 'What should happen to subtitle rows?',
+  });
+}
+
+/**
+ * @param {{ legacy_identifier: string, legacy_data_dir: string, items: string[] }} offer
+ */
+export function promptLegacyMigration(offer) {
+  const modal = document.getElementById('modal-legacy-migration');
+  const list = document.getElementById('legacy-migration-items');
+  if (list) {
+    list.innerHTML = offer?.items?.length
+      ? offer.items.map(item => `<li>${escHtml(item)}</li>`).join('')
+      : '';
+  }
+  const itemSummary = offer?.items?.length
+    ? offer.items.join(', ')
+    : 'settings';
+  return openChoiceModal(modal, {
+    message: `SanMoji found data from the previous installation (${offer.legacy_identifier}). Copy ${itemSummary} into this version?`,
   });
 }

@@ -1,6 +1,6 @@
 {
   "name": "sanmoji",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SanMoji — three-track lyric subtitle studio (Romaji / Indo / English) with real-time preview and FFmpeg export",
   "license": "MIT",
   "author": "Arkvin",

@@ -4,7 +4,7 @@ export const MIN_ROW_MS = 100;
 export const DEFAULT_ROW_MS = 4000;
 export const MIN_TIMELINE_DURATION_MS = 60_000;
 
-export const CPS_WARN_THRESHOLD = 25;
+
 export const GAP_WARN_MS = 2000;
 export const MAX_CHARS_PER_LINE = 42;
 
