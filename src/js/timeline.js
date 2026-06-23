@@ -417,9 +417,28 @@ function drawTimelineBlocks(context, w, h, dur, useWindow) {
 
   state.project.rows.forEach((row, i) => {
     const { x1, x2, win } = blockXCoords(row.start_ms, row.end_ms, w, dur, useWindow);
-    if (windowed && win && (row.end_ms < win.startMs || row.start_ms > win.endMs)) return;
-
+    const rowOffscreen = windowed && win && (row.end_ms < win.startMs || row.start_ms > win.endMs);
     const y = 12 + i * (rowH + 2);
+
+    const next = state.project.rows[i + 1];
+    if (next) {
+      if (row.end_ms > next.start_ms) {
+        const ox = blockXCoords(next.start_ms, row.end_ms, w, dur, useWindow);
+        if (ox.x2 > 0 && ox.x1 < w) {
+          context.fillStyle = 'rgba(255, 107, 107, 0.35)';
+          context.fillRect(ox.x1, y - 1, Math.max(ox.x2 - ox.x1, 2), rowH + 4);
+        }
+      } else if (next.start_ms - row.end_ms > GAP_WARN_MS) {
+        const gx = blockXCoords(row.end_ms, next.start_ms, w, dur, useWindow);
+        if (gx.x2 > 0 && gx.x1 < w) {
+          context.fillStyle = 'rgba(68, 170, 255, 0.35)';
+          context.fillRect(gx.x1, y + rowH / 2 - 1, Math.max(gx.x2 - gx.x1, 2), 3);
+        }
+      }
+    }
+
+    if (rowOffscreen) return;
+
     const barW = Math.max(x2 - x1, 2);
     const isActive = row.id === state.activeRowId;
     const isDragOver = tlDragOverIdx === i && tlDragId && tlDragId !== row.id;
@@ -427,19 +446,6 @@ function drawTimelineBlocks(context, w, h, dur, useWindow) {
     if (isDragOver) {
       context.fillStyle = 'rgba(224, 92, 0, 0.25)';
       context.fillRect(0, y - 1, w, rowH + 6);
-    }
-
-    const next = state.project.rows[i + 1];
-    if (next) {
-      if (row.end_ms > next.start_ms) {
-        const ox = blockXCoords(next.start_ms, row.end_ms, w, dur, useWindow);
-        context.fillStyle = 'rgba(255, 107, 107, 0.35)';
-        context.fillRect(ox.x1, y - 1, Math.max(ox.x2 - ox.x1, 2), rowH + 4);
-      } else if (next.start_ms - row.end_ms > GAP_WARN_MS) {
-        const gx = blockXCoords(row.end_ms, next.start_ms, w, dur, useWindow);
-        context.fillStyle = 'rgba(68, 170, 255, 0.35)';
-        context.fillRect(gx.x1, y + rowH / 2 - 1, Math.max(gx.x2 - gx.x1, 2), 3);
-      }
     }
 
     [['romaji', 0], ['indo', 1], ['english', 2]].forEach(([track, offset]) => {
@@ -556,12 +562,14 @@ function drawWaveformStatic(w, h, dur) {
   if (!video?.paused && wfZoom > 1) {
     const winCheck = visibleWindow(dur);
     if (playMs < winCheck.startMs || playMs > winCheck.endMs) {
+      const prevScroll = wfScroll;
       const windowMs = dur / wfZoom;
       const maxScrollMs = Math.max(0, dur - windowMs);
       const targetStart = Math.max(0, playMs - windowMs * 0.1);
       wfScroll = maxScrollMs > 0 ? targetStart / maxScrollMs : 0;
       clampScroll();
       wfStaticDirty = true;
+      if (wfScroll !== prevScroll) invalidateTimelineCache();
     }
   }
 
@@ -628,8 +636,14 @@ function drawWaveformPlayheadOnly() {
 }
 
 export function updateWaveformPlayhead() {
+  const scrollBefore = wfScroll;
+  const zoomBefore = wfZoom;
   drawWaveformPlayheadOnly();
-  drawTimelinePlayheadOnly();
+  if (wfScroll !== scrollBefore || wfZoom !== zoomBefore) {
+    renderTimeline();
+  } else {
+    drawTimelinePlayheadOnly();
+  }
 }
 
 export function bulkShift(deltaMs) {

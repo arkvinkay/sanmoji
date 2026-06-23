@@ -1517,8 +1517,10 @@ export function promptCloseVideo() {
 export function promptLegacyMigration(offer) {
   const modal = document.getElementById('modal-legacy-migration');
   const list = document.getElementById('legacy-migration-items');
-  if (list && offer?.items?.length) {
-    list.innerHTML = offer.items.map(item => `<li>${escHtml(item)}</li>`).join('');
+  if (list) {
+    list.innerHTML = offer?.items?.length
+      ? offer.items.map(item => `<li>${escHtml(item)}</li>`).join('')
+      : '';
   }
   const itemSummary = offer?.items?.length
     ? offer.items.join(', ')

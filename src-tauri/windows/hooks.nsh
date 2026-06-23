@@ -13,14 +13,10 @@
     CopyFiles /SILENT "$1\settings.json" "$2"
     IfFileExists "$1\autosave.smpr" 0 +2
       CopyFiles /SILENT "$1\autosave.smpr" "$2"
-    IfFileExists "$1\ffmpeg.exe" 0 +2
-      CopyFiles /SILENT "$1\ffmpeg.exe" "$2"
-    IfFileExists "$1\ffmpeg-download.zip" 0 +2
-      CopyFiles /SILENT "$1\ffmpeg-download.zip" "$2"
+    IfFileExists "$1\ffmpeg\ffmpeg.exe" 0 +3
+      CreateDirectory "$2\ffmpeg"
+      CopyFiles /SILENT "$1\ffmpeg\ffmpeg.exe" "$2\ffmpeg"
   skip_roaming:
-
-  ReadEnvStr $3 APPDATA
-  IfFileExists "$3\id.app.arkvin.sanmoji\settings.json" skip_cache 0
 
   ReadEnvStr $0 LOCALAPPDATA
   StrCpy $1 "$0\id.arkvin.sanmoji.app\cache"

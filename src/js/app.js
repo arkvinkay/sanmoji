@@ -518,7 +518,12 @@ video?.addEventListener('timeupdate', () => {
   const timeEl = document.getElementById('time-display');
   if (timeEl) timeEl.textContent = msToDisplay(ms);
   highlightActiveRow(ms);
+  if (video.paused) renderOverlay(ms);
   updateWaveformPlayhead();
+});
+
+video?.addEventListener('seeked', () => {
+  if (video?.paused) renderOverlay(secToMs(video.currentTime));
 });
 
 video?.addEventListener('play', startOverlayLoop);

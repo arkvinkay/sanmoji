@@ -124,7 +124,7 @@ v1/
 ## Tauri configuration notes
 
 - **Identifier:** `id.app.arkvin.sanmoji` (reverse-domain bundle ID)
-- **Upgrading from v1.0.0:** The Windows installer copies existing data from `%APPDATA%\id.arkvin.sanmoji.app` when the new folder is still empty. If you run the app without going through the installer (or migration was skipped), SanMoji asks on first launch whether to **Import** settings/autosave/cache from the old path or **Start Fresh**. Choose Import to copy; nothing is overwritten if the new folder already has data.
+- **Upgrading from v1.0.0:** The NSIS installer hook (`installerHooks`) copies settings, preview cache, and the downloaded FFmpeg binary from `%APPDATA%\id.arkvin.sanmoji.app` (including `ffmpeg/ffmpeg.exe`) when the new folder is still empty. If you run the app without going through the installer (or migration was skipped), SanMoji asks on first launch whether to **Import** settings/autosave/cache/FFmpeg from the old path or **Start Fresh**. Choose Import to copy; nothing is overwritten if the new folder already has data.
 - **Asset protocol scope (S4):** Allowed paths include standard user folders (`$DOCUMENT`, `$DOWNLOAD`, `$VIDEO`, `$DESKTOP`, `$HOME`, `$TEMP`, `$APPDATA`) plus `?:/**` for Windows drive letters. The drive wildcard is **required** so users can open videos from any mounted drive (e.g. `D:\Concerts\...`). This is intentional — the webview only reads files the user explicitly opens or that are referenced by a saved project.
 - **Shell permissions (S5):** FFmpeg is executed from the Rust backend via Tauri commands, not from frontend JavaScript. `shell:allow-execute` is **not** granted to the webview; only `shell:default` (e.g. opening external URLs) remains.
 
