@@ -10,7 +10,9 @@ import {
 import { invoke, dialog, convertFileSrc, listen, isTauri } from './tauri.js';
 import { msToDisplay, secToMs, snapMs, basename, safeDuration, setProgressBar } from './utils.js';
 import { DEFAULT_ROW_MS } from './constants.js';
-import { renderRows, highlightActiveRow, syncActiveRowHighlight } from './editor.js';
+import {
+  renderRows, highlightActiveRow, syncActiveRowHighlight, invalidateEditorAfterHistory,
+} from './editor.js';
 import { initOverlay, renderOverlay } from './overlay.js';
 import { initTimeline, renderTimeline, loadWaveform, updateWaveformPlayhead, clearWaveform } from './timeline.js';
 import {
@@ -25,6 +27,7 @@ import { startAutosave } from './autosave.js';
 import { getShortcuts, shortcutMatches } from './shortcuts.js';
 import { fetchSettings, fetchSystemFonts } from './settings-api.js';
 import { applyTheme } from './themes.js';
+import { initSyncLyric, isSyncModeActive } from './sync-lyric.js';
 
 const video = document.getElementById('video-player');
 let waveformLoadGen = 0;
@@ -50,10 +53,6 @@ function stopOverlayLoop() {
     cancelAnimationFrame(overlayRafId);
     overlayRafId = null;
   }
-}
-
-export function videoLoadingActive() {
-  return isVideoLoading;
 }
 
 function showVideoLoading(show, message = '', percent = 0) {
@@ -411,6 +410,18 @@ async function offerLegacyMigration() {
   }
 }
 
+function loadSyncedRows(rows) {
+  if (!state.project || !rows?.length) return;
+  clearHistory();
+  state.project.rows = rows;
+  state.activeRowId = rows[0]?.id ?? null;
+  markDirty();
+  pushHistory();
+  renderRows();
+  renderTimeline();
+  toast(`Loaded ${rows.length} synced row(s) into editor`, 'success');
+}
+
 async function boot() {
   try {
     if (!isTauri()) {
@@ -453,7 +464,13 @@ async function boot() {
       }
     }
 
-    await tryRestoreAutosave();
+    initSyncLyric({ videoEl: video, onLoadRows: loadSyncedRows });
+    const startFile = await invoke('get_start_file');
+    if (startFile) {
+      await loadProjectFromPath(startFile);
+    } else {
+      await tryRestoreAutosave();
+    }
     setupDragDrop();
     updateHistoryIndicator();
     restoreSessionState();
@@ -806,10 +823,10 @@ function handleShortcutAction(actionId, e) {
       saveProject();
       break;
     case 'undo':
-      if (undo()) renderRows();
+      if (undo()) invalidateEditorAfterHistory();
       break;
     case 'redo':
-      if (redo()) renderRows();
+      if (redo()) invalidateEditorAfterHistory();
       break;
     case 'setIn':
       document.getElementById('btn-set-in')?.click();
@@ -863,7 +880,7 @@ function handleShortcutAction(actionId, e) {
 }
 
 document.addEventListener('keydown', e => {
-  if (isVideoLoading) return;
+  if (isVideoLoading || isSyncModeActive()) return;
 
   const modalOpen = document.querySelector('.modal:not(.hidden)');
   const shortcuts = getShortcuts();

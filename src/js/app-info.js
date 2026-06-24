@@ -1,6 +1,6 @@
 /** App metadata — single source for UI & About dialog */
 export const APP_NAME = 'SanMoji';
-export const APP_VERSION = '1.0.1';
+export const APP_VERSION = '1.1.0';
 export const APP_CREATOR = 'Arkvin';
 export const APP_GITHUB = 'https://github.com/arkvinkay/sanmoji';
 export const APP_TAGLINE = '三言字幕 — Romaji · Indo · English lyric subtitle studio';

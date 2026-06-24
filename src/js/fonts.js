@@ -18,16 +18,6 @@ export function fontEntries() {
   return (state.fonts ?? []).map(normalizeFontEntry).filter(Boolean);
 }
 
-export function fontFamilyName(entry) {
-  return normalizeFontEntry(entry)?.family ?? 'Arial';
-}
-
-export function fontPathForFamily(family) {
-  const target = (family ?? '').trim().toLowerCase();
-  const hit = fontEntries().find(f => f.family.toLowerCase() === target);
-  return hit?.path ?? '';
-}
-
 export function populateFontSelect(sel, current) {
   if (!sel) return;
   const cur = current ?? sel.dataset.current ?? 'Arial';

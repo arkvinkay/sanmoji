@@ -1,6 +1,9 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+
+static SYSTEM_FONTS: OnceLock<Vec<FontInfo>> = OnceLock::new();
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FontInfo {
@@ -123,7 +126,7 @@ fn scan_font_dir(dir: &Path, out: &mut HashMap<String, FontInfo>) {
     }
 }
 
-pub fn collect_system_fonts() -> Vec<FontInfo> {
+fn scan_system_fonts() -> Vec<FontInfo> {
     let mut map: HashMap<String, FontInfo> = HashMap::new();
 
     #[cfg(windows)]
@@ -165,6 +168,10 @@ pub fn collect_system_fonts() -> Vec<FontInfo> {
     let mut fonts: Vec<FontInfo> = map.into_values().collect();
     fonts.sort_by_key(|a| a.family.to_lowercase());
     fonts
+}
+
+pub fn collect_system_fonts() -> Vec<FontInfo> {
+    SYSTEM_FONTS.get_or_init(scan_system_fonts).clone()
 }
 
 pub fn resolve_font_path_by_family(family: &str) -> Option<String> {

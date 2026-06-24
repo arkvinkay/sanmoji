@@ -1,6 +1,6 @@
 # SanMoji
 
-![Version](https://img.shields.io/badge/version-1.0.1-orange)
+![Version](https://img.shields.io/badge/version-1.1.0-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-24c8db)
@@ -13,15 +13,23 @@ I built SanMoji because I needed a simple desktop tool to burn lyric subtitles o
 
 The three columns are labeled **Romaji**, **Indo**, and **English** because that matches my usual workflow (JP readings + Indonesian + English translations). They are just names: you can type **any language** in any column — Korean, Thai, Spanish, instrumental credits, or leave tracks empty. Export and preview treat them as three independent text lines.
 
-## What's New in v1.0.1
+## What's New in v1.1.0
 
-- **Fixed:** GitHub link in About now points to [arkvinkay/sanmoji](https://github.com/arkvinkay/sanmoji)
-- **Fixed:** Space no longer double-toggles play/pause
-- **Fixed:** Smoother subtitle animation preview during playback (~60 fps)
-- **Fixed:** Waveform time labels stay readable at high zoom; timeline blocks sync with waveform zoom/scroll
-- **Changed:** Removed CPS and character count column from the row editor
-- **Changed:** Removed Live Preview panel from Settings → Layout Y (main video preview still updates)
-- **Changed:** Bundle identifier `id.app.arkvin.sanmoji` with automatic data migration from `id.arkvin.sanmoji.app`
+- **Added:** **Sync Lyric Mode** — paste three-track lyrics, sync timing in real time with waveform and hotkeys (`I`, `O`, `Space`/`Enter`, `Escape`)
+- **Added:** `.smpr` file association — double-click a project file to open SanMoji and load it directly
+- **Changed:** Timeline uses horizontal greedy-packing lanes; non-overlapping rows share a lane
+- **Changed:** Overlapping subtitle ranges highlighted with a red warning overlay
+- **Changed:** Rust settings use typed `AnimationType` and `ExportPreset` enums with safe serde fallbacks
+- **Changed:** Removed unused dead-code exports across utils, toast, fonts, validation, modal-manager, and app
+- **Changed:** Split monolithic `modals.js` into `src/js/modals/` (settings, export, batch, shortcuts, etc.) — `modals.js` remains the public import path
+- **Changed:** Split monolithic `commands.rs` into `src-tauri/src/commands/` (project, export, subtitle, video, system)
+- **Fixed:** `convertFileSrc` protocol parameter — `stream:` protocol works for WebView2 video preview
+- **Fixed:** `Content-Length` mismatch on GET video requests (no more playback hangs)
+- **Fixed:** Glitch overlay crash when canvas context is null
+- **Fixed:** System font registry scan cached with `OnceLock` (faster export)
+- **Fixed:** Mutex poisoning recovery and preview video cache cleanup
+- **Fixed:** Removed redundant double-clone in history snapshots (lower GC pressure on undo/redo)
+- **Fixed:** Timeline overlap warning now covers all overlapping ranges, including when rows are placed on a new lane
 
 ## Built with vibes
 
@@ -39,7 +47,7 @@ This app is **fully vibe coded** — designed and implemented iteratively with A
 - Full-screen loading overlay blocks all interaction while metadata is read and audio is analyzed for the waveform
 - **`[ IN` / `OUT ]`** markers with optional 1-second snap
 - Zoomable **waveform** (scroll to zoom, drag to pan, click to seek)
-- Visual timeline with playhead and row blocks
+- Visual timeline with playhead, lane-packed row blocks, and red overlap warnings
 - Bulk shift ±1s and scale-all timings
 
 ### Layout & typography
@@ -67,7 +75,7 @@ This app is **fully vibe coded** — designed and implemented iteratively with A
 ### UX
 - Icon toolbar for New / Open Video / Close Video / Open Project / Save / Import
 - Tooltips on major controls
-- Undo/redo (Ctrl+Z / Ctrl+Shift+Z)
+- Undo/redo 
 - **Themes:** Dark, Light, Midnight, Warm, Forest (Settings → General)
 - Customizable keyboard shortcuts
 - Playback speed 0.25×–2×
@@ -95,7 +103,7 @@ Drops are ignored while a video is still loading (metadata / waveform analysis).
 ## Development
 
 ```bash
-cd v1
+cd v1.1.0
 npm install
 npm run dev      # hot-reload development
 npm run build    # release installer (NSIS)
@@ -111,13 +119,20 @@ cargo test
 ## Project structure
 
 ```
-v1/
-├── src/                 # Frontend (vanilla JS)
-│   ├── js/              # app, editor, overlay, timeline, modals
+v1.1.0/
+├── src/                      # Frontend (vanilla JS)
+│   ├── js/
+│   │   ├── app.js            # Entry point
+│   │   ├── editor.js, overlay.js, timeline.js, …
+│   │   ├── modals.js         # Barrel re-export (public API)
+│   │   └── modals/           # One file per dialog (settings, export, batch, …)
 │   └── css/
-├── src-tauri/           # Rust backend (Tauri v2)
-│   ├── src/             # commands, ASS builder, FFmpeg, validation
-│   └── bin/             # FFmpeg sidecar (dev)
+├── src-tauri/                # Rust backend (Tauri v2)
+│   ├── src/
+│   │   ├── commands/         # Tauri IPC handlers (project, export, subtitle, video, system)
+│   │   ├── ass.rs, validation.rs, …
+│   │   └── lib.rs
+│   └── bin/                  # FFmpeg sidecar (dev)
 └── README.md
 ```
 
@@ -147,13 +162,13 @@ Open **⌨ Shortcuts** in the toolbar for the full list.
 | ← / → | Seek ±1s (Shift = ±5s) |
 | Ctrl+H | Find & Replace |
 | Ctrl+Z | Undo |
-| Ctrl+Shift+Z | Redo |
+| Ctrl+Y | Redo |
 
 ## Contributing
 
 1. Fork the repository and create a feature branch from `main`.
-2. Install dependencies: `cd v1 && npm install`.
-3. Make changes in `v1/src/` (frontend) or `v1/src-tauri/src/` (Rust).
+2. Install dependencies: `cd v1.1.0 && npm install`.
+3. Make changes in `src/js/` (frontend) or `src-tauri/src/` (Rust). New modal logic goes in `src/js/modals/`; new Tauri commands go in `src-tauri/src/commands/`.
 4. Run checks before opening a PR:
    ```bash
    npm run lint
@@ -181,7 +196,7 @@ Bug reports and feature requests are welcome via GitHub issues.
 - Cancel a stuck export from the export dialog; only one export runs at a time.
 
 ### FFmpeg not found (development)
-- Place `ffmpeg.exe` in `v1/src-tauri/bin/`, or run export once to trigger automatic download (Windows).
+- Place `ffmpeg.exe` in `src-tauri/bin/`, or run export once to trigger automatic download (Windows).
 
 ### Build / CI errors
 - **Rust:** `rustup update stable` and `cargo clean --manifest-path src-tauri/Cargo.toml`.

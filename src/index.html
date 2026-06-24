@@ -28,6 +28,7 @@
         <span class="toolbar-sep"></span>
         <div class="btn-group">
           <button id="btn-import-subtitle" class="btn-icon" title="Import .srt, .ass, or .vtt subtitle" aria-label="Import subtitle">📥</button>
+          <button id="btn-sync-mode" class="btn-icon" title="Sync Lyric Mode — real-time timing with waveform" aria-label="Sync lyric mode">🎤</button>
           <div class="recent-wrap">
             <select id="recent-items" title="Quick-open a recent project or video" aria-label="Recent projects and videos">
               <option value="">Recent…</option>
@@ -51,6 +52,59 @@
         <button id="btn-export" class="btn-primary" title="Burn subtitles into a new video file (MP4, MKV, WebM, …)" aria-label="Export video">▶ Export</button>
       </div>
     </header>
+
+    <section id="sync-lyric-panel" class="hidden" aria-label="Sync Lyric Mode">
+      <header class="sync-panel-header">
+        <h2>Sync Lyric Mode</h2>
+        <span id="sync-progress-label" class="dim-text"></span>
+        <button id="btn-sync-close" type="button" title="Exit sync mode">✕ Close</button>
+      </header>
+
+      <div id="sync-input-screen" class="sync-screen">
+        <p class="dim-text">Paste lyrics with equal line counts in each track. Requires an open video for audio playback.</p>
+        <div class="sync-textarea-grid">
+          <label>Romaji<textarea id="sync-romaji" rows="12" placeholder="Romaji lines…" spellcheck="false"></textarea></label>
+          <label>Indo<textarea id="sync-indo" rows="12" placeholder="Indonesian lines…" spellcheck="false"></textarea></label>
+          <label>English<textarea id="sync-english" rows="12" placeholder="English lines…" spellcheck="false"></textarea></label>
+        </div>
+        <p id="sync-validation" class="sync-validation-warn">Enter lyrics in all three tracks</p>
+        <div class="sync-actions">
+          <button id="btn-sync-start" class="btn-primary" type="button" disabled>Start Sync</button>
+        </div>
+      </div>
+
+      <div id="sync-timing-screen" class="sync-screen hidden">
+        <div class="sync-timing-top">
+          <div class="sync-wf-toolbar wf-toolbar">
+            <button id="btn-sync-wf-zoom-out" type="button" title="Zoom out waveform">−</button>
+            <span id="sync-wf-zoom-label" title="Waveform zoom level">1×</span>
+            <button id="btn-sync-wf-zoom-in" type="button" title="Zoom in waveform">+</button>
+            <button id="btn-sync-wf-fit" type="button" title="Reset zoom to fit entire track">Fit</button>
+            <span class="wf-hint dim-text">Click to seek · scroll to zoom · drag to pan</span>
+          </div>
+          <canvas id="sync-waveform-canvas" height="80" title="Click to seek · scroll to zoom · drag to pan when zoomed" aria-label="Sync waveform — click to seek, scroll to zoom"></canvas>
+        </div>
+        <div class="sync-transport">
+          <button id="btn-sync-play-pause" type="button" class="btn-primary" title="Play/Pause audio">▶ Play</button>
+          <button id="btn-sync-restart" type="button" title="Stop and rewind to start">⏮ Restart</button>
+          <span id="sync-time-display" class="sync-time-display">00:00:00.000</span>
+        </div>
+        <div class="sync-controls">
+          <button id="btn-sync-set-in" type="button" title="Set IN at playhead (I)">[ IN</button>
+          <button id="btn-sync-set-out" type="button" title="Set OUT at playhead (O)">OUT ]</button>
+          <button id="btn-sync-chain" type="button" title="Chain OUT + next IN (Space/Enter)">⛓ Chain</button>
+          <button id="btn-sync-clear-line" type="button" title="Clear current line timing (Esc)">↺ Clear line</button>
+          <button id="btn-sync-cancel" type="button" title="Cancel sync — stop audio and return to lyric input">✕ Cancel</button>
+        </div>
+        <div id="sync-row-list" class="sync-row-list" role="list"></div>
+        <div class="sync-export-actions">
+          <button id="btn-sync-load-editor" type="button" class="btn-primary">Load into Editor</button>
+          <button id="btn-sync-export-smpr" type="button">Save .smpr</button>
+          <button id="btn-sync-export-srt" type="button">Export .srt</button>
+          <button id="btn-sync-export-ass" type="button">Export .ass</button>
+        </div>
+      </div>
+    </section>
 
     <main id="main">
       <section id="preview-panel">

@@ -66,7 +66,6 @@ export function setProgressBar(el, percent) {
 }
 
 export function secToMs(sec) { return Math.round(sec * 1000); }
-export function msToSec(ms) { return ms / 1000; }
 
 /** Snap ms to nearest whole second when enabled */
 export function snapMs(ms, enabled) {

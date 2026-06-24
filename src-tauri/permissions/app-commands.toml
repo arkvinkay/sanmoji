@@ -28,5 +28,6 @@ commands.allow = [
   "cancel_export",
   "get_legacy_migration_offer",
   "import_legacy_data",
-  "decline_legacy_migration"
+  "decline_legacy_migration",
+  "get_start_file"
 ]

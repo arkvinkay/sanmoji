@@ -7,7 +7,9 @@ export function getShortcuts() {
 
 export function ensureShortcuts(settings) {
   if (!settings) return settings;
-  settings.shortcuts = { ...DEFAULT_SHORTCUTS, ...(settings.shortcuts ?? {}) };
+  const merged = { ...DEFAULT_SHORTCUTS, ...(settings.shortcuts ?? {}) };
+  if (merged.redo === 'Ctrl+Shift+KeyZ') merged.redo = DEFAULT_SHORTCUTS.redo;
+  settings.shortcuts = merged;
   return settings;
 }
 
@@ -23,7 +25,7 @@ export function applySettingsResponse(resp) {
   return { settings: ensureShortcuts(resp), corrupt: false };
 }
 
-/** Parse "Ctrl+Shift+KeyZ" into modifier flags + code */
+/** Parse "Ctrl+KeyY" into modifier flags + code */
 function parseShortcut(str) {
   if (!str) return null;
   const parts = str.split('+').map(s => s.trim());
