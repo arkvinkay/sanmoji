@@ -507,6 +507,7 @@ export function invalidateEditorAfterHistory() {
   editingRowId = null;
   const focused = document.activeElement;
   if (focused?.closest?.('#rows-container')) focused.blur();
+  if (container) container.innerHTML = '';
   rowElCache.clear();
   invalidateTimeline();
   renderRows();

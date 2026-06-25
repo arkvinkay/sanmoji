@@ -63,7 +63,10 @@ pub fn get_ffmpeg_status(app: AppHandle) -> FfmpegStatus {
 }
 
 #[tauri::command]
-pub async fn get_system_fonts() -> Result<Vec<FontInfo>, String> {
+pub async fn get_system_fonts(refresh: Option<bool>) -> Result<Vec<FontInfo>, String> {
+    if refresh == Some(true) {
+        fonts::clear_system_fonts_cache();
+    }
     tauri::async_runtime::spawn_blocking(fonts::collect_system_fonts)
         .await
         .map_err(|e| format!("Could not load system fonts: {e}"))

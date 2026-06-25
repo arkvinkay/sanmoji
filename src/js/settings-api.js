@@ -17,9 +17,9 @@ export async function fetchSettings() {
   return settings;
 }
 
-export async function fetchSystemFonts() {
+export async function fetchSystemFonts(refresh = false) {
   try {
-    return await invoke('get_system_fonts');
+    return await invoke('get_system_fonts', { refresh });
   } catch (err) {
     console.warn('get_system_fonts failed:', err);
     return [

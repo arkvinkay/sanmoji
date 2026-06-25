@@ -1,10 +1,11 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum AnimationType {
     None,
+    #[default]
     Fade,
     Typewriter,
     #[serde(rename = "slide_up")]
@@ -14,6 +15,7 @@ pub enum AnimationType {
     Glow,
     Bounce,
     Glitch,
+    Unknown,
 }
 
 impl AnimationType {
@@ -27,6 +29,7 @@ impl AnimationType {
             Self::Glow => "glow",
             Self::Bounce => "bounce",
             Self::Glitch => "glitch",
+            Self::Unknown => "fade",
         }
     }
 
@@ -40,12 +43,13 @@ impl AnimationType {
             "glow" => Self::Glow,
             "bounce" => Self::Bounce,
             "glitch" => Self::Glitch,
-            _ => Self::Fade,
+            _ => Self::Unknown,
         }
     }
 
     fn sanitize_watermark(self) -> Self {
         match self {
+            Self::Unknown => Self::Glitch,
             Self::None | Self::Fade | Self::Glitch => self,
             _ => Self::Glitch,
         }
@@ -53,15 +57,9 @@ impl AnimationType {
 
     fn sanitize_track(self) -> Self {
         match self {
-            Self::Glitch => Self::Fade,
+            Self::Unknown | Self::Glitch => Self::Fade,
             other => other,
         }
-    }
-}
-
-impl Default for AnimationType {
-    fn default() -> Self {
-        Self::Fade
     }
 }
 
@@ -75,7 +73,7 @@ impl<'de> Deserialize<'de> for AnimationType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ExportPreset {
     Ultrafast,
@@ -83,6 +81,7 @@ pub enum ExportPreset {
     Veryfast,
     Faster,
     Fast,
+    #[default]
     Medium,
     Slow,
     Slower,
@@ -117,12 +116,6 @@ impl ExportPreset {
             "veryslow" => Some(Self::Veryslow),
             _ => None,
         }
-    }
-}
-
-impl Default for ExportPreset {
-    fn default() -> Self {
-        Self::Medium
     }
 }
 
@@ -385,6 +378,12 @@ fn crf_max_for_encoder(encoder: &str) -> u32 {
 
 impl AnimationDefaults {
     pub fn validate_and_sanitize(&mut self) {
+        if self.anim_in == AnimationType::Unknown {
+            self.anim_in = AnimationType::Fade;
+        }
+        if self.anim_out == AnimationType::Unknown {
+            self.anim_out = AnimationType::Fade;
+        }
         self.anim_in = self.anim_in.sanitize_track();
         self.anim_out = self.anim_out.sanitize_track();
         self.duration_in_ms = self.duration_in_ms.clamp(0, 5000);
@@ -549,9 +548,12 @@ mod tests {
     }
 
     #[test]
-    fn deserializes_unknown_animation_to_fade() {
+    fn deserializes_unknown_animation_to_unknown_then_sanitizes() {
         let json = r#"{"anim_in":"unknown","anim_out":"fade","duration_in_ms":300,"duration_out_ms":200,"delay_ms":0}"#;
-        let anim: AnimationDefaults = serde_json::from_str(json).unwrap();
+        let mut anim: AnimationDefaults = serde_json::from_str(json).unwrap();
+        assert_eq!(anim.anim_in, AnimationType::Unknown);
+        assert_eq!(anim.anim_out, AnimationType::Fade);
+        anim.validate_and_sanitize();
         assert_eq!(anim.anim_in, AnimationType::Fade);
         assert_eq!(anim.anim_out, AnimationType::Fade);
     }

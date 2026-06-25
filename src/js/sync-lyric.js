@@ -80,8 +80,8 @@ function buildSyncRows() {
   const lineCount = romaji.length;
   return Array.from({ length: lineCount }, (_, i) => ({
     id: crypto.randomUUID(),
-    start_ms: 0,
-    end_ms: 0,
+    start_ms: null,
+    end_ms: null,
     romaji: romaji[i] ?? '',
     indo: indo[i] ?? '',
     english: english[i] ?? '',
@@ -157,7 +157,7 @@ function selectSyncRow(index) {
   if (index < 0 || index >= syncRows.length) return;
   currentIdx = index;
   const row = syncRows[index];
-  if (videoEl && row?.start_ms > 0) {
+  if (videoEl && row?.start_ms != null && row.start_ms >= 0) {
     videoEl.currentTime = row.start_ms / 1000;
   }
   renderSyncList();
@@ -182,10 +182,12 @@ function renderSyncList() {
     el.setAttribute('tabindex', '0');
     el.setAttribute('aria-label', `Line ${i + 1}`);
     if (i === currentIdx) el.classList.add('sync-row-active');
-    if (row.end_ms > row.start_ms) el.classList.add('sync-row-done');
-    const timing = row.end_ms > row.start_ms
+    if (row.end_ms != null && row.start_ms != null && row.end_ms > row.start_ms) {
+      el.classList.add('sync-row-done');
+    }
+    const timing = row.end_ms != null && row.start_ms != null && row.end_ms > row.start_ms
       ? `${msToDisplay(row.start_ms)} → ${msToDisplay(row.end_ms)}`
-      : row.start_ms > 0
+      : row.start_ms != null
         ? `IN ${msToDisplay(row.start_ms)}`
         : '—';
 
@@ -215,7 +217,7 @@ function renderSyncList() {
     }
   });
   if (syncProgressEl) {
-    const done = syncRows.filter(r => r.end_ms > r.start_ms).length;
+    const done = syncRows.filter(r => r.end_ms != null && r.start_ms != null && r.end_ms > r.start_ms).length;
     syncProgressEl.textContent = `${done} / ${syncRows.length} timed`;
   }
 }
@@ -229,7 +231,7 @@ function setIn() {
   if (!row || !videoEl) return;
   const ms = getSnapMs();
   row.start_ms = ms;
-  if (row.end_ms <= ms) row.end_ms = 0;
+  if (row.end_ms == null || row.end_ms <= ms) row.end_ms = null;
   renderSyncList();
   toast(`Line ${currentIdx + 1} IN → ${msToDisplay(ms)}`, 'success');
 }
@@ -238,7 +240,7 @@ function setOut() {
   const row = currentRow();
   if (!row || !videoEl) return;
   const ms = getSnapMs();
-  if (row.start_ms <= 0 && ms <= 0) {
+  if (row.start_ms == null) {
     toast('Set IN first', 'warning');
     return;
   }
@@ -258,34 +260,38 @@ function chain() {
   const row = currentRow();
   if (!row || !videoEl) return;
   const ms = getSnapMs();
-  if (row.start_ms <= 0) {
+  if (row.start_ms == null) {
     row.start_ms = ms;
     toast(`Line ${currentIdx + 1} IN → ${msToDisplay(ms)}`, 'success');
     renderSyncList();
     return;
   }
   row.end_ms = Math.max(ms, row.start_ms + 100);
-  currentIdx = Math.min(currentIdx + 1, syncRows.length - 1);
-  const next = currentRow();
-  if (next) next.start_ms = ms;
+  if (currentIdx < syncRows.length - 1) {
+    currentIdx += 1;
+    const next = currentRow();
+    if (next) next.start_ms = ms;
+    toast(`Chained at ${msToDisplay(ms)}`, 'success');
+  } else {
+    toast(`Sync complete! Last line timing set to ${msToDisplay(row.end_ms)}`, 'success');
+  }
   renderSyncList();
-  toast(`Chained at ${msToDisplay(ms)}`, 'success');
 }
 
 function cancelCurrent() {
   const row = currentRow();
   if (!row) return;
-  row.start_ms = 0;
-  row.end_ms = 0;
+  row.start_ms = null;
+  row.end_ms = null;
   renderSyncList();
   toast('Cleared current line timing', 'info');
 }
 
 function closeRemainingRows(endMs) {
-  for (let i = currentIdx; i < syncRows.length; i++) {
+  for (let i = syncRows.length - 1; i >= currentIdx; i--) {
     const row = syncRows[i];
-    if (row.end_ms > row.start_ms) continue;
-    if (row.start_ms <= 0) row.start_ms = Math.max(0, endMs - DEFAULT_ROW_MS);
+    if (row.end_ms != null && row.start_ms != null && row.end_ms > row.start_ms) continue;
+    if (row.start_ms == null) row.start_ms = Math.max(0, endMs - DEFAULT_ROW_MS);
     row.end_ms = Math.max(row.start_ms + 100, endMs);
     endMs = row.start_ms;
   }
@@ -384,7 +390,10 @@ function seekSyncFromCanvas(clientX) {
 }
 
 function onSyncWaveformClick(e) {
-  if (syncWfDragMoved) return;
+  if (syncWfDragMoved) {
+    syncWfDragMoved = false;
+    return;
+  }
   seekSyncFromCanvas(e.clientX);
 }
 
@@ -464,7 +473,7 @@ function drawSyncWaveform() {
   }
 
   syncRows.forEach((row, i) => {
-    if (row.end_ms <= row.start_ms) return;
+    if (row.start_ms == null || row.end_ms == null || row.end_ms <= row.start_ms) return;
     if (row.end_ms < win.startMs || row.start_ms > win.endMs) return;
     const x1 = syncMsToCanvasX(row.start_ms, w, win);
     const x2 = syncMsToCanvasX(row.end_ms, w, win);
@@ -571,7 +580,7 @@ async function exportSubtitle(format) {
 }
 
 function loadToEditor() {
-  const timed = syncRows.filter(r => r.end_ms > r.start_ms);
+  const timed = syncRows.filter(r => r.end_ms != null && r.start_ms != null && r.end_ms > r.start_ms);
   if (!timed.length) {
     toast('No timed rows to load', 'warning');
     return;
@@ -580,9 +589,50 @@ function loadToEditor() {
   exitSyncMode();
 }
 
+function onSyncWaveformKeydown(e) {
+  if (!syncActive || syncScreen !== 'sync') return;
+  const dur = durationMs();
+  if (dur <= 0) return;
+  let handled = false;
+
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    const step = e.shiftKey ? 5000 : 1000;
+    const dir = e.key === 'ArrowLeft' ? -1 : 1;
+    if (videoEl) {
+      const target = Math.max(0, Math.min(dur, (videoEl.currentTime * 1000) + dir * step));
+      videoEl.currentTime = target / 1000;
+    }
+    handled = true;
+  } else if (e.key === 'ArrowUp' || e.key === '+' || e.key === '=') {
+    e.preventDefault();
+    setSyncWaveformZoom(syncWfZoom * 2);
+    handled = true;
+  } else if (e.key === 'ArrowDown' || e.key === '-') {
+    e.preventDefault();
+    setSyncWaveformZoom(syncWfZoom / 2);
+    handled = true;
+  } else if (e.key === 'Home' || e.key === 'End') {
+    e.preventDefault();
+    syncWfScroll = e.key === 'Home' ? 0 : 1;
+    clampSyncScroll();
+    handled = true;
+  } else if (e.key === 'PageUp' || e.key === 'PageDown') {
+    e.preventDefault();
+    const dir = e.key === 'PageUp' ? -1 : 1;
+    syncWfScroll = Math.max(0, Math.min(1, syncWfScroll + dir * 0.1));
+    clampSyncScroll();
+    handled = true;
+  }
+
+  if (handled) {
+    drawSyncWaveform();
+  }
+}
+
 function onSyncKeydown(e) {
   if (!syncActive || syncScreen !== 'sync') return;
-  if (e.target?.tagName === 'TEXTAREA' || e.target?.tagName === 'INPUT') return;
+  if (e.target?.closest?.('button,input,textarea,select,a,[contenteditable="true"],.sync-row-item')) return;
 
   const key = e.key.toLowerCase();
   if (key === 'i') {
@@ -621,9 +671,13 @@ export function initSyncLyric({ videoEl: video, onLoadRows: loadCb }) {
 
   if (syncCanvas) syncCtx = syncCanvas.getContext('2d');
 
-  syncCanvas?.addEventListener('click', onSyncWaveformClick);
-  syncCanvas?.addEventListener('wheel', onSyncWaveformWheel, { passive: false });
-  syncCanvas?.addEventListener('mousedown', onSyncWaveformDragStart);
+  if (syncCanvas) {
+    syncCanvas.setAttribute('tabindex', '0');
+    syncCanvas.addEventListener('click', onSyncWaveformClick);
+    syncCanvas.addEventListener('wheel', onSyncWaveformWheel, { passive: false });
+    syncCanvas.addEventListener('mousedown', onSyncWaveformDragStart);
+    syncCanvas.addEventListener('keydown', onSyncWaveformKeydown);
+  }
 
   document.getElementById('btn-sync-wf-zoom-in')?.addEventListener('click', () => {
     setSyncWaveformZoom(syncWfZoom * 2);

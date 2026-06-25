@@ -1098,6 +1098,11 @@ body.sync-mode-active #main {
   cursor: grab;
 }
 
+#sync-waveform-canvas:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
 .sync-time-display {
   font-family: ui-monospace, monospace;
   font-size: 13px;

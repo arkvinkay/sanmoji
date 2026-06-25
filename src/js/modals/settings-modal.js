@@ -4,6 +4,7 @@ import { renderRows } from '../editor.js';
 import { invoke, dialog } from '../tauri.js';
 import { toast } from '../toast.js';
 import { refreshWatermark, renderOverlay, invalidateOverlay } from '../overlay.js';
+import { fetchSettings } from '../settings-api.js';
 import { showModal, hideModal } from './_shared.js';
 import { populateFontSelect, refreshSystemFonts, updateFontPreview } from '../fonts.js';
 import { applyTheme, themeOptions } from '../themes.js';
@@ -170,7 +171,10 @@ export async function openSettingsModal(initialTab = 'layout') {
 
   document.getElementById('btn-wm-browse')?.addEventListener('click', async () => {
     const path = await dialog.open({ filters: [{ name: 'Image', extensions: ['png','jpg','jpeg','webp'] }] });
-    if (path) document.getElementById('wm-path').value = path;
+    if (path) {
+      document.getElementById('wm-path').value = path;
+      applyLiveWatermarkSettings();
+    }
   });
 
   document.getElementById('btn-preset-save')?.addEventListener('click', () => {
@@ -245,8 +249,14 @@ export async function openSettingsModal(initialTab = 'layout') {
     const sel = document.getElementById('wm-text-font');
     if (sel) updateFontPreview(sel);
   });
-  content.querySelectorAll('#wm-text, #wm-text-size, #wm-text-color, #wm-text-gap, #wm-text-position, #wm-text-font, #wm-text-bold, #wm-text-outline-color, #wm-text-outline-size, #wm-text-shadow').forEach(el => {
-    const handler = () => applyLiveWatermarkCaption();
+  const wmLiveIds = [
+    '#wm-enabled', '#wm-path', '#wm-w', '#wm-h', '#wm-mx', '#wm-my',
+    '#wm-anim-in', '#wm-anim-out', '#wm-dur-in', '#wm-dur-out',
+    '#wm-text', '#wm-text-size', '#wm-text-color', '#wm-text-gap', '#wm-text-position',
+    '#wm-text-font', '#wm-text-bold', '#wm-text-outline-color', '#wm-text-outline-size', '#wm-text-shadow',
+  ];
+  content.querySelectorAll(wmLiveIds.join(', ')).forEach(el => {
+    const handler = () => applyLiveWatermarkSettings();
     el.addEventListener('input', handler);
     el.addEventListener('change', handler);
   });
@@ -258,7 +268,11 @@ export async function openSettingsModal(initialTab = 'layout') {
     });
   });
 
-  showModal('modal-settings');
+  showModal('modal-settings', {
+    onEscape: () => {
+      document.getElementById('btn-settings-cancel')?.click();
+    },
+  });
 }
 
 function activateSettingsTab(tab) {
@@ -383,9 +397,19 @@ function trackPanel(key, label, style, anim) {
   </div>`;
 }
 
-function applyLiveWatermarkCaption() {
+function applyLiveWatermarkSettings() {
   if (!state.settings) return;
   const wm = state.settings.watermark;
+  wm.enabled = document.getElementById('wm-enabled')?.checked ?? false;
+  wm.file_path = document.getElementById('wm-path')?.value ?? '';
+  wm.width = Number(document.getElementById('wm-w')?.value) || 0;
+  wm.height = Number(document.getElementById('wm-h')?.value) || 0;
+  wm.margin_x = Number(document.getElementById('wm-mx')?.value) || 0;
+  wm.margin_y = Number(document.getElementById('wm-my')?.value) || 0;
+  wm.anim_in = document.getElementById('wm-anim-in')?.value ?? 'glitch';
+  wm.anim_out = document.getElementById('wm-anim-out')?.value ?? 'glitch';
+  wm.duration_in_ms = Number(document.getElementById('wm-dur-in')?.value) || 0;
+  wm.duration_out_ms = Number(document.getElementById('wm-dur-out')?.value) || 0;
   wm.text = document.getElementById('wm-text')?.value ?? '';
   wm.text_size = Number(document.getElementById('wm-text-size')?.value) || 14;
   wm.text_color = document.getElementById('wm-text-color')?.value ?? '#FFFFFF';
@@ -474,6 +498,16 @@ document.getElementById('btn-settings-save')?.addEventListener('click', async ()
   toast('Settings saved', 'success');
 });
 
-document.getElementById('btn-settings-cancel')?.addEventListener('click', () => {
+document.getElementById('btn-settings-cancel')?.addEventListener('click', async () => {
+  try {
+    state.settings = await fetchSettings();
+  } catch (err) {
+    console.warn('Reload settings on settings cancel:', err);
+  }
+  applyTheme(state.settings?.theme);
+  refreshWatermark();
+  renderRows();
+  const video = document.getElementById('video-player');
+  renderOverlay(Math.round((video?.currentTime ?? 0) * 1000));
   hideModal('modal-settings');
 });

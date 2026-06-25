@@ -412,11 +412,10 @@ async function offerLegacyMigration() {
 
 function loadSyncedRows(rows) {
   if (!state.project || !rows?.length) return;
-  clearHistory();
+  pushHistory();
   state.project.rows = rows;
   state.activeRowId = rows[0]?.id ?? null;
   markDirty();
-  pushHistory();
   renderRows();
   renderTimeline();
   toast(`Loaded ${rows.length} synced row(s) into editor`, 'success');
@@ -465,11 +464,13 @@ async function boot() {
     }
 
     initSyncLyric({ videoEl: video, onLoadRows: loadSyncedRows });
-    const startFile = await invoke('get_start_file');
-    if (startFile) {
-      await loadProjectFromPath(startFile);
-    } else {
-      await tryRestoreAutosave();
+    if (isTauri()) {
+      const startFile = await invoke('get_start_file');
+      if (startFile) {
+        await loadProjectFromPath(startFile);
+      } else {
+        await tryRestoreAutosave();
+      }
     }
     setupDragDrop();
     updateHistoryIndicator();

@@ -1,9 +1,9 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::Mutex;
 
-static SYSTEM_FONTS: OnceLock<Vec<FontInfo>> = OnceLock::new();
+static SYSTEM_FONTS: Mutex<Option<Vec<FontInfo>>> = Mutex::new(None);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FontInfo {
@@ -170,8 +170,18 @@ fn scan_system_fonts() -> Vec<FontInfo> {
     fonts
 }
 
+pub fn clear_system_fonts_cache() {
+    if let Ok(mut cache) = SYSTEM_FONTS.lock() {
+        *cache = None;
+    }
+}
+
 pub fn collect_system_fonts() -> Vec<FontInfo> {
-    SYSTEM_FONTS.get_or_init(scan_system_fonts).clone()
+    let mut cache = SYSTEM_FONTS.lock().unwrap_or_else(|e| e.into_inner());
+    if cache.is_none() {
+        *cache = Some(scan_system_fonts());
+    }
+    cache.clone().unwrap_or_default()
 }
 
 pub fn resolve_font_path_by_family(family: &str) -> Option<String> {

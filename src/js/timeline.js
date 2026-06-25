@@ -262,22 +262,27 @@ function computeLaneLayout(rows) {
     }
   }
 
-  rows.forEach((row, rowIdx) => {
-    let lane = laneEnds.findIndex(end => row.start_ms >= end);
-    if (lane === -1) {
-      lane = laneEnds.length;
-      laneEnds.push(0);
-    }
-    assignments.push({ row, lane, rowIdx });
-    laneEnds[lane] = Math.max(laneEnds[lane], row.end_ms);
-  });
+  rows
+    .map((row, rowIdx) => ({ row, rowIdx }))
+    .sort((a, b) => a.row.start_ms - b.row.start_ms || a.row.end_ms - b.row.end_ms)
+    .forEach(({ row, rowIdx }) => {
+      let lane = laneEnds.findIndex(end => row.start_ms >= end);
+      if (lane === -1) {
+        lane = laneEnds.length;
+        laneEnds.push(0);
+      }
+      assignments.push({ row, lane, rowIdx });
+      laneEnds[lane] = Math.max(laneEnds[lane], row.end_ms);
+    });
 
   return { assignments, laneCount: Math.max(1, laneEnds.length), overlaps };
 }
 
 function laneMetrics(h, laneCount) {
-  const rowH = Math.min(14, (h - 16) / laneCount);
-  const laneH = rowH + 2;
+  const gap = 2;
+  const available = Math.max(1, h - 16 - gap * (laneCount - 1));
+  const rowH = Math.min(14, available / laneCount);
+  const laneH = rowH + gap;
   return { rowH, laneH };
 }
 

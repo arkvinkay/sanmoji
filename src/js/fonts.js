@@ -56,7 +56,7 @@ export function updateFontPreview(sel) {
 }
 
 export async function refreshSystemFonts(showToast = false) {
-  const fonts = await fetchSystemFonts();
+  const fonts = await fetchSystemFonts(true);
   state.fonts = fonts;
   document.querySelectorAll('select.font-select').forEach(sel => {
     populateFontSelect(sel, sel.value || sel.dataset.current);

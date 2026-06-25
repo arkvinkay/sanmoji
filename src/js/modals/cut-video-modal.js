@@ -41,7 +41,7 @@ export function openCutVideoModal() {
   document.getElementById('cut-start-ms').value = startMs;
   document.getElementById('cut-end-ms').value = endMs;
   const pathEl = document.getElementById('cut-output-path');
-  if (pathEl && !pathEl.value) {
+  if (pathEl) {
     const base = state.project.video_path.replace(/\.[^./\\]+$/, '');
     pathEl.value = `${base}_cut.mp4`;
   }

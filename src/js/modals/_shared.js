@@ -3,7 +3,11 @@ import { openModal, closeModal, initModalBackdropClose } from '../modal-manager.
 export function showModal(id, opts = {}) {
   const el = document.getElementById(id);
   if (!el) return;
-  openModal(el, { onEscape: opts.onEscape ?? (() => hideModal(id)) });
+  const { onEscape, ...rest } = opts;
+  openModal(el, {
+    onEscape: onEscape ?? (() => hideModal(id)),
+    ...rest,
+  });
 }
 
 export function hideModal(id) {

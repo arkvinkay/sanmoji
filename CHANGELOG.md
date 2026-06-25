@@ -7,6 +7,7 @@ All notable changes to SanMoji are documented in this file.
 ### Added
 - Sync Lyric Mode for real-time subtitle timing while audio plays.
 - File association support: double-clicking `.smpr` files opens SanMoji and loads the project.
+- Waveform canvas keyboard navigation support (seek, zoom, pan) in Sync Lyric Mode.
 
 ### Changed
 - Timeline refactored to use a horizontal greedy-packing lane layout.
@@ -17,6 +18,9 @@ All notable changes to SanMoji are documented in this file.
 - Removed unused exports: `msToSec`, `clearToasts`, `fontFamilyName`, `fontPathForFamily`, `validateProjectLocal`, `isModalOpen`, `videoLoadingActive`.
 - Modularized `modals.js` (1,531 lines) into `src/js/modals/` — 14 focused modules with `modals.js` as a barrel re-export; `app.js` imports unchanged.
 - Modularized `commands.rs` (1,409 lines) into `src-tauri/src/commands/` — `project`, `export`, `subtitle`, `video`, `system`, and `common` submodules with `mod.rs` as entry point.
+- Sync Mode row loader now pushes history state before timing injection.
+- Timeline overlap lane packaging now chronologically sorted before greedy lane assignment.
+- Subtitle track overlap heights adjusted for row gaps to prevent lane overflow rendering clips.
 
 ### Fixed
 - Fixed convertFileSrc protocol parameter mismatch.
@@ -27,6 +31,14 @@ All notable changes to SanMoji are documented in this file.
 - Removed double serialization inside project history snapshots.
 - Undo/redo now fully refreshes row editor and timeline after each step.
 - Timeline overlap warning now detects all overlapping ranges, including when a new lane is created (`lane === -1`).
+- Deserialized string settings fall back to field defaults instead of global `AnimationType::Fade`.
+- Stale DOM nodes are fully cleaned up from the timeline viewport on undo/redo actions.
+- Modifier-only key combinations properly rejected during shortcuts setup.
+- Video cut modal output path suffix auto-refreshes when project path changes.
+- Settings and shortcuts modal overlays automatically call Cancel when clicking the backdrop or pressing Escape.
+- Moved FFmpeg poller thread startup inside backend commands to avoid active thread leaks on process failures.
+- HTML-escaped project custom fields inside the animation configuration modal templates to mitigate XSS script injections.
+- Large video preview files (exceeding 8 MiB) now served using proper memory-safe HTTP 206 Partial Content streams, resolving seeking hangs.
 
 ## [1.0.1] - 2026-06-23
 

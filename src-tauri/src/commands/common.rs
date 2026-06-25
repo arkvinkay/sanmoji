@@ -565,20 +565,6 @@ pub(crate) async fn run_ffmpeg_command(
 
     emit_progress(app, 0.0, "Starting encoder…");
 
-    let tracker = Arc::new(Mutex::new(ExportProgressTracker::new(total_ms)));
-    let done = Arc::new(AtomicBool::new(false));
-    let app_poll = app.clone();
-    let pf = progress_file.clone();
-    let done_poll = done.clone();
-    let tracker_poll = tracker.clone();
-    let poll = thread::spawn(move || {
-        let mut last_pos = 0u64;
-        while !done_poll.load(Ordering::Relaxed) {
-            thread::sleep(Duration::from_millis(100));
-            poll_progress_file(&tracker_poll, &app_poll, &pf, &mut last_pos);
-        }
-    });
-
     let (mut rx, child) = app
         .shell()
         .command(ffmpeg.to_string_lossy().to_string())
@@ -592,6 +578,20 @@ pub(crate) async fn run_ffmpeg_command(
     } else {
         Some(UntrackedFfmpegChild(Some(child)))
     };
+
+    let tracker = Arc::new(Mutex::new(ExportProgressTracker::new(total_ms)));
+    let done = Arc::new(AtomicBool::new(false));
+    let app_poll = app.clone();
+    let pf = progress_file.clone();
+    let done_poll = done.clone();
+    let tracker_poll = tracker.clone();
+    let poll = thread::spawn(move || {
+        let mut last_pos = 0u64;
+        while !done_poll.load(Ordering::Relaxed) {
+            thread::sleep(Duration::from_millis(100));
+            poll_progress_file(&tracker_poll, &app_poll, &pf, &mut last_pos);
+        }
+    });
 
     let mut result = Err("FFmpeg stopped unexpectedly.".into());
     while let Some(event) = rx.recv().await {

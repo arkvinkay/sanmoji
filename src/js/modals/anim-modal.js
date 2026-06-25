@@ -26,11 +26,11 @@ export function openAnimModal(rowId) {
       </label>
       <label>Duration In (ms)
         <input type="number" data-row-anim="${rowField}" data-field="duration_in_ms"
-          value="${ov.duration_in_ms ?? def.duration_in_ms}" min="0" max="5000" />
+          value="${escHtml(ov.duration_in_ms ?? def.duration_in_ms)}" min="0" max="5000" />
       </label>
       <label>Delay (ms)
         <input type="number" data-row-anim="${rowField}" data-field="delay_ms"
-          value="${ov.delay_ms ?? def.delay_ms}" min="0" max="5000" />
+          value="${escHtml(ov.delay_ms ?? def.delay_ms)}" min="0" max="5000" />
       </label>
       <label>Anim Out
         <select data-row-anim="${rowField}" data-field="anim_out">
@@ -39,7 +39,7 @@ export function openAnimModal(rowId) {
       </label>
       <label>Duration Out (ms)
         <input type="number" data-row-anim="${rowField}" data-field="duration_out_ms"
-          value="${ov.duration_out_ms ?? def.duration_out_ms}" min="0" max="5000" />
+          value="${escHtml(ov.duration_out_ms ?? def.duration_out_ms)}" min="0" max="5000" />
       </label>
     </div>
     <label>Raw ASS In <small>e.g. \\fad(500,0)\\blur3</small>

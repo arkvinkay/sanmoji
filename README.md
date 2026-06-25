@@ -30,6 +30,18 @@ The three columns are labeled **Romaji**, **Indo**, and **English** because that
 - **Fixed:** Mutex poisoning recovery and preview video cache cleanup
 - **Fixed:** Removed redundant double-clone in history snapshots (lower GC pressure on undo/redo)
 - **Fixed:** Timeline overlap warning now covers all overlapping ranges, including when rows are placed on a new lane
+- **Added:** Waveform canvas keyboard navigation support in Sync Lyric Mode (ArrowLeft/Right to seek, ArrowUp/Down / +/- to zoom, PageUp/Down / Home / End to pan)
+- **Changed:** Sync Mode row loader now pushes history before timing injection, making timing loads undoable via `Ctrl+Z`
+- **Changed:** Timeline overlaps lane assignments packaged in strict chronological order
+- **Changed:** Subtitle track overlap heights adjusted for row gaps to prevent lane overflow rendering clips
+- **Fixed:** Deserialized string settings fall back to field defaults instead of global `AnimationType::Fade`
+- **Fixed:** Stale DOM element nodes are now fully cleaned up from the timeline viewport on undo/redo actions
+- **Fixed:** Modifier-only key combinations properly rejected during shortcuts setup
+- **Fixed:** Video cut modals now automatically refresh output path suffixes when project paths are changed
+- **Fixed:** Settings and shortcuts modal overlays automatically call Cancel programmatically when clicking the backdrop or pressing Escape
+- **Fixed:** Moved FFmpeg poller thread startup inside backend commands to avoid active thread leaks on process failures
+- **Fixed:** HTML-escaped project custom fields inside the animation configuration modal templates to mitigate XSS script injections
+- **Fixed:** Large video preview files (exceeding 8 MiB) now served using proper memory-safe HTTP 206 Partial Content streams, resolving seeking hangs
 
 ## Built with vibes
 
@@ -103,7 +115,7 @@ Drops are ignored while a video is still loading (metadata / waveform analysis).
 ## Development
 
 ```bash
-cd v1.1.0
+# Clone the repository and run setup from the repository root
 npm install
 npm run dev      # hot-reload development
 npm run build    # release installer (NSIS)

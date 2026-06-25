@@ -68,9 +68,13 @@ pub fn load_autosave_draft(app: AppHandle) -> Result<Option<AutosavePayload>, St
     if v.get("project").is_none() {
         return Err("Autosave data is damaged: missing project data".into());
     }
-    let project: Project = serde_json::from_value(v["project"].clone())
+    let mut project: Project = serde_json::from_value(v["project"].clone())
         .map_err(|e| friendly_json_err("autosave project data", e))?;
     let project_path = v["project_path"].as_str().map(|s| s.to_string());
+    let resolved = resolve_video_path(project_path.as_deref(), &project.video_path);
+    if resolved.exists() {
+        project.video_path = resolved.to_string_lossy().to_string();
+    }
     Ok(Some(AutosavePayload {
         project,
         project_path,

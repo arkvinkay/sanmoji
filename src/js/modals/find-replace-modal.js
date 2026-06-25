@@ -78,11 +78,15 @@ document.getElementById('btn-fr-apply')?.addEventListener('click', () => {
   }
 
   let count = 0;
-  pushHistory();
+  let recordedHistory = false;
   for (const row of state.project.rows) {
     for (const t of tracks) {
       const result = replacer.replace(row[t] ?? '');
       if (result.count > 0) {
+        if (!recordedHistory) {
+          pushHistory();
+          recordedHistory = true;
+        }
         row[t] = result.text;
         count += result.count;
       }

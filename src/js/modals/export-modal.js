@@ -99,46 +99,52 @@ document.getElementById('btn-export-browse')?.addEventListener('click', async ()
 });
 
 async function runExport(options = null) {
-  const outPath = document.getElementById('export-path').value;
-  if (!outPath) { toast('Select output file first.', 'warning'); return; }
-
-  let issues = [];
-  try {
-    issues = await invoke('validate_export', { project: state.project });
-    renderValidationList(issues);
-  } catch (err) {
-    toast('Validation failed: ' + err, 'error');
-    return;
-  }
-  if (hasBlockingErrors(issues)) {
-    toast('Fix validation errors before exporting', 'error');
-    return;
-  }
-
-  const crf     = Number(document.getElementById('export-crf').value);
-  const preset  = document.getElementById('export-preset').value;
-  const encoder = document.getElementById('export-encoder').value;
-  state.settings.export.crf     = crf;
-  state.settings.export.preset  = preset;
-  state.settings.export.encoder = encoder;
-  await invoke('save_settings', { settings: state.settings });
-
-  try {
-    const ff = await invoke('get_ffmpeg_status');
-    if (!ff.available) {
-      startExportProgress();
-      updateExportProgress(0, 'Downloading FFmpeg…');
-      await invoke('ensure_ffmpeg');
-    }
-  } catch (err) {
-    toast('FFmpeg not available: ' + err, 'error');
-    return;
-  }
-
+  if (isExportInProgress()) return;
   setExportModalLocked(true);
-  startExportProgress();
-
   try {
+    const outPath = document.getElementById('export-path').value;
+    if (!outPath) { toast('Select output file first.', 'warning'); return; }
+
+    let issues = [];
+    try {
+      issues = await invoke('validate_export', { project: state.project });
+      renderValidationList(issues);
+    } catch (err) {
+      toast('Validation failed: ' + err, 'error');
+      return;
+    }
+    if (hasBlockingErrors(issues)) {
+      toast('Fix validation errors before exporting', 'error');
+      return;
+    }
+
+    const crf     = Number(document.getElementById('export-crf').value);
+    const preset  = document.getElementById('export-preset').value;
+    const encoder = document.getElementById('export-encoder').value;
+    state.settings.export.crf     = crf;
+    state.settings.export.preset  = preset;
+    state.settings.export.encoder = encoder;
+    try {
+      await invoke('save_settings', { settings: state.settings });
+    } catch (err) {
+      toast('Failed to save export settings: ' + err, 'error');
+      return;
+    }
+
+    try {
+      const ff = await invoke('get_ffmpeg_status');
+      if (!ff.available) {
+        startExportProgress();
+        updateExportProgress(0, 'Downloading FFmpeg…');
+        await invoke('ensure_ffmpeg');
+      }
+    } catch (err) {
+      toast('FFmpeg not available: ' + err, 'error');
+      return;
+    }
+
+    startExportProgress();
+
     const exportOptions = {
       ...(options ?? {}),
       videoDurationMs: state.videoDurationMs > 0 ? state.videoDurationMs : undefined,

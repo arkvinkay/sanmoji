@@ -39,7 +39,11 @@ export function openShortcutsModal() {
   }
   capturingAction = null;
   renderShortcutsList();
-  showModal('modal-shortcuts');
+  showModal('modal-shortcuts', {
+    onEscape: () => {
+      document.getElementById('btn-shortcuts-cancel')?.click();
+    },
+  });
 }
 
 document.getElementById('btn-shortcuts-reset')?.addEventListener('click', () => {
@@ -51,6 +55,7 @@ document.getElementById('btn-shortcuts-reset')?.addEventListener('click', () => 
 
 document.getElementById('btn-shortcuts-save')?.addEventListener('click', async () => {
   if (!state.settings) return;
+  capturingAction = null;
   try {
     await invoke('save_settings', { settings: state.settings });
     toast('Shortcuts saved', 'success');
@@ -61,6 +66,7 @@ document.getElementById('btn-shortcuts-save')?.addEventListener('click', async (
 });
 
 document.getElementById('btn-shortcuts-cancel')?.addEventListener('click', async () => {
+  capturingAction = null;
   try {
     state.settings = await fetchSettings();
   } catch (err) {
@@ -85,7 +91,9 @@ document.addEventListener('keydown', (e) => {
   if (e.code && !['ControlLeft', 'ControlRight', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight'].includes(e.code)) {
     parts.push(e.code);
   }
-  if (parts.length < 1 || (parts.length === 1 && parts[0].startsWith('Control'))) return;
+  const modifiers = ['Ctrl', 'Shift', 'Alt'];
+  const hasKey = parts.some(p => !modifiers.includes(p));
+  if (parts.length < 1 || !hasKey) return;
 
   ensureShortcuts(state.settings);
   state.settings.shortcuts[capturingAction] = parts.join('+');
