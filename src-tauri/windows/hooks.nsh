@@ -2,6 +2,10 @@
 ; Runs after files are installed. Copies only when the new data folder has no settings yet.
 ; If this hook does not run (portable/dev), the app offers an interactive import on first launch.
 
+; FileAssociation.nsh uses SHELL_CONTEXT as the registry root, but Tauri's template never
+; defines it — association writes were no-ops. SHCTX respects installMode (currentUser/perMachine).
+!define SHELL_CONTEXT SHCTX
+
 !macro NSIS_HOOK_POSTINSTALL
   ReadEnvStr $0 APPDATA
   StrCpy $1 "$0\id.arkvin.sanmoji.app"
@@ -27,4 +31,13 @@
     CreateDirectory "$2"
     CopyFiles /SILENT "$1\*.*" "$2"
   skip_cache:
+
+  ; Belt-and-suspenders .smpr registration (ProgID must not contain spaces).
+  WriteRegStr SHCTX "Software\Classes\.smpr" "" "SanMoji.smpr"
+  WriteRegStr SHCTX "Software\Classes\SanMoji.smpr" "" "SanMoji subtitle project file"
+  WriteRegStr SHCTX "Software\Classes\SanMoji.smpr\DefaultIcon" "" "$INSTDIR\${MAINBINARYNAME}.exe,0"
+  WriteRegStr SHCTX "Software\Classes\SanMoji.smpr\shell" "" "open"
+  WriteRegStr SHCTX "Software\Classes\SanMoji.smpr\shell\open" "" "Open with ${PRODUCTNAME}"
+  WriteRegStr SHCTX "Software\Classes\SanMoji.smpr\shell\open\command" "" "$\"$INSTDIR\${MAINBINARYNAME}.exe$\" $\"%1$\""
+  !insertmacro UPDATEFILEASSOC
 !macroend

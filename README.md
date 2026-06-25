@@ -1,6 +1,6 @@
 # SanMoji
 
-![Version](https://img.shields.io/badge/version-1.1.0-orange)
+![Version](https://img.shields.io/badge/version-1.1.1-orange)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-24c8db)
@@ -13,35 +13,14 @@ I built SanMoji because I needed a simple desktop tool to burn lyric subtitles o
 
 The three columns are labeled **Romaji**, **Indo**, and **English** because that matches my usual workflow (JP readings + Indonesian + English translations). They are just names: you can type **any language** in any column — Korean, Thai, Spanish, instrumental credits, or leave tracks empty. Export and preview treat them as three independent text lines.
 
-## What's New in v1.1.0
+## What's New in v1.1.1
 
-- **Added:** **Sync Lyric Mode** — paste three-track lyrics, sync timing in real time with waveform and hotkeys (`I`, `O`, `Space`/`Enter`, `Escape`)
-- **Added:** `.smpr` file association — double-click a project file to open SanMoji and load it directly
-- **Changed:** Timeline uses horizontal greedy-packing lanes; non-overlapping rows share a lane
-- **Changed:** Overlapping subtitle ranges highlighted with a red warning overlay
-- **Changed:** Rust settings use typed `AnimationType` and `ExportPreset` enums with safe serde fallbacks
-- **Changed:** Removed unused dead-code exports across utils, toast, fonts, validation, modal-manager, and app
-- **Changed:** Split monolithic `modals.js` into `src/js/modals/` (settings, export, batch, shortcuts, etc.) — `modals.js` remains the public import path
-- **Changed:** Split monolithic `commands.rs` into `src-tauri/src/commands/` (project, export, subtitle, video, system)
-- **Fixed:** `convertFileSrc` protocol parameter — `stream:` protocol works for WebView2 video preview
-- **Fixed:** `Content-Length` mismatch on GET video requests (no more playback hangs)
-- **Fixed:** Glitch overlay crash when canvas context is null
-- **Fixed:** System font registry scan cached with `OnceLock` (faster export)
-- **Fixed:** Mutex poisoning recovery and preview video cache cleanup
-- **Fixed:** Removed redundant double-clone in history snapshots (lower GC pressure on undo/redo)
-- **Fixed:** Timeline overlap warning now covers all overlapping ranges, including when rows are placed on a new lane
-- **Added:** Waveform canvas keyboard navigation support in Sync Lyric Mode (ArrowLeft/Right to seek, ArrowUp/Down / +/- to zoom, PageUp/Down / Home / End to pan)
-- **Changed:** Sync Mode row loader now pushes history before timing injection, making timing loads undoable via `Ctrl+Z`
-- **Changed:** Timeline overlaps lane assignments packaged in strict chronological order
-- **Changed:** Subtitle track overlap heights adjusted for row gaps to prevent lane overflow rendering clips
-- **Fixed:** Deserialized string settings fall back to field defaults instead of global `AnimationType::Fade`
-- **Fixed:** Stale DOM element nodes are now fully cleaned up from the timeline viewport on undo/redo actions
-- **Fixed:** Modifier-only key combinations properly rejected during shortcuts setup
-- **Fixed:** Video cut modals now automatically refresh output path suffixes when project paths are changed
-- **Fixed:** Settings and shortcuts modal overlays automatically call Cancel programmatically when clicking the backdrop or pressing Escape
-- **Fixed:** Moved FFmpeg poller thread startup inside backend commands to avoid active thread leaks on process failures
-- **Fixed:** HTML-escaped project custom fields inside the animation configuration modal templates to mitigate XSS script injections
-- **Fixed:** Large video preview files (exceeding 8 MiB) now served using proper memory-safe HTTP 206 Partial Content streams, resolving seeking hangs
+- **Fixed:** `.smpr` file association now registers correctly on install (NSIS `SHELL_CONTEXT` bug) and self-repairs on startup when the extension is unset or already mapped to SanMoji
+- **Fixed:** Export modal resets progress state when FFmpeg download or export fails, so retries work without reopening the dialog
+- **Fixed:** Settings read from disk are validated and sanitized before caching; corrupt values are flagged instead of silently accepted
+- **Fixed:** Settings Cancel no longer overwrites in-memory settings when reload from disk fails
+- **Fixed:** Sync Lyric timing uses strict null/undefined checks; backward row backfill anchors to already-timed lines to prevent overlaps
+- **Fixed:** Post-release hardening from v1.1.0 — XSS mitigation in animation modal, export preflight locks, autosave path resolution, waveform keyboard navigation, timeline lane gaps, and more (see [CHANGELOG.md](CHANGELOG.md))
 
 ## Built with vibes
 
@@ -179,7 +158,7 @@ Open **⌨ Shortcuts** in the toolbar for the full list.
 ## Contributing
 
 1. Fork the repository and create a feature branch from `main`.
-2. Install dependencies: `cd v1.1.0 && npm install`.
+2. Install dependencies: `npm install` from the repository root.
 3. Make changes in `src/js/` (frontend) or `src-tauri/src/` (Rust). New modal logic goes in `src/js/modals/`; new Tauri commands go in `src-tauri/src/commands/`.
 4. Run checks before opening a PR:
    ```bash
