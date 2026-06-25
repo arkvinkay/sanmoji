@@ -5,7 +5,7 @@ All notable changes to SanMoji are documented in this file.
 ## [1.1.1] - 2026-06-25
 
 ### Fixed
-- `.smpr` file association registers correctly on NSIS install (`SHELL_CONTEXT` was undefined in the installer template) and self-repairs on Windows startup when the extension is unset or already mapped to SanMoji.
+- `.smpr` file association registers correctly on NSIS install (`SHELL_CONTEXT` was undefined in the installer template) and self-repairs on Windows startup when the extension is unset or already mapped to SanMoji; dev/debug builds skip registry writes, and release builds only repair missing or broken open commands instead of retargeting every launch.
 - Export modal resets progress UI on FFmpeg download or export failures so the dialog can be retried immediately.
 - Settings loaded from disk are validated and sanitized in `read_settings_from_disk`; validation errors mark the file as corrupt.
 - Settings Cancel assigns `state.settings` only when `fetchSettings()` returns a non-null object.

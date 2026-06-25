@@ -15,7 +15,7 @@ The three columns are labeled **Romaji**, **Indo**, and **English** because that
 
 ## What's New in v1.1.1
 
-- **Fixed:** `.smpr` file association now registers correctly on install (NSIS `SHELL_CONTEXT` bug) and self-repairs on first launch for existing installs
+- **Fixed:** `.smpr` file association now registers correctly on install (NSIS `SHELL_CONTEXT` bug) and self-repairs on startup when the extension is unset or already mapped to SanMoji
 - **Fixed:** Export modal resets progress state when FFmpeg download or export fails, so retries work without reopening the dialog
 - **Fixed:** Settings read from disk are validated and sanitized before caching; corrupt values are flagged instead of silently accepted
 - **Fixed:** Settings Cancel no longer overwrites in-memory settings when reload from disk fails
