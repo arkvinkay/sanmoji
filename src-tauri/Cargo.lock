@@ -2562,6 +2562,7 @@ dependencies = [
  "tauri-plugin-shell",
  "ttf-parser",
  "uuid",
+ "winreg",
  "zip",
 ]
 
