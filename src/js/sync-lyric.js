@@ -157,7 +157,7 @@ function selectSyncRow(index) {
   if (index < 0 || index >= syncRows.length) return;
   currentIdx = index;
   const row = syncRows[index];
-  if (videoEl && row?.start_ms != null && row.start_ms >= 0) {
+  if (videoEl && row?.start_ms !== null && row.start_ms >= 0) {
     videoEl.currentTime = row.start_ms / 1000;
   }
   renderSyncList();
@@ -182,12 +182,12 @@ function renderSyncList() {
     el.setAttribute('tabindex', '0');
     el.setAttribute('aria-label', `Line ${i + 1}`);
     if (i === currentIdx) el.classList.add('sync-row-active');
-    if (row.end_ms != null && row.start_ms != null && row.end_ms > row.start_ms) {
+    if (row.end_ms !== null && row.start_ms !== null && row.end_ms > row.start_ms) {
       el.classList.add('sync-row-done');
     }
-    const timing = row.end_ms != null && row.start_ms != null && row.end_ms > row.start_ms
+    const timing = row.end_ms !== null && row.start_ms !== null && row.end_ms > row.start_ms
       ? `${msToDisplay(row.start_ms)} → ${msToDisplay(row.end_ms)}`
-      : row.start_ms != null
+      : row.start_ms !== null
         ? `IN ${msToDisplay(row.start_ms)}`
         : '—';
 
@@ -217,7 +217,7 @@ function renderSyncList() {
     }
   });
   if (syncProgressEl) {
-    const done = syncRows.filter(r => r.end_ms != null && r.start_ms != null && r.end_ms > r.start_ms).length;
+    const done = syncRows.filter(r => r.end_ms !== null && r.start_ms !== null && r.end_ms > r.start_ms).length;
     syncProgressEl.textContent = `${done} / ${syncRows.length} timed`;
   }
 }
@@ -231,7 +231,7 @@ function setIn() {
   if (!row || !videoEl) return;
   const ms = getSnapMs();
   row.start_ms = ms;
-  if (row.end_ms == null || row.end_ms <= ms) row.end_ms = null;
+  if (row.end_ms === null || row.end_ms <= ms) row.end_ms = null;
   renderSyncList();
   toast(`Line ${currentIdx + 1} IN → ${msToDisplay(ms)}`, 'success');
 }
@@ -240,7 +240,7 @@ function setOut() {
   const row = currentRow();
   if (!row || !videoEl) return;
   const ms = getSnapMs();
-  if (row.start_ms == null) {
+  if (row.start_ms === null) {
     toast('Set IN first', 'warning');
     return;
   }
@@ -260,7 +260,7 @@ function chain() {
   const row = currentRow();
   if (!row || !videoEl) return;
   const ms = getSnapMs();
-  if (row.start_ms == null) {
+  if (row.start_ms === null) {
     row.start_ms = ms;
     toast(`Line ${currentIdx + 1} IN → ${msToDisplay(ms)}`, 'success');
     renderSyncList();
@@ -290,8 +290,8 @@ function cancelCurrent() {
 function closeRemainingRows(endMs) {
   for (let i = syncRows.length - 1; i >= currentIdx; i--) {
     const row = syncRows[i];
-    if (row.end_ms != null && row.start_ms != null && row.end_ms > row.start_ms) continue;
-    if (row.start_ms == null) row.start_ms = Math.max(0, endMs - DEFAULT_ROW_MS);
+    if (row.end_ms !== null && row.start_ms !== null && row.end_ms > row.start_ms) continue;
+    if (row.start_ms === null) row.start_ms = Math.max(0, endMs - DEFAULT_ROW_MS);
     row.end_ms = Math.max(row.start_ms + 100, endMs);
     endMs = row.start_ms;
   }
@@ -473,7 +473,7 @@ function drawSyncWaveform() {
   }
 
   syncRows.forEach((row, i) => {
-    if (row.start_ms == null || row.end_ms == null || row.end_ms <= row.start_ms) return;
+    if (row.start_ms === null || row.end_ms === null || row.end_ms <= row.start_ms) return;
     if (row.end_ms < win.startMs || row.start_ms > win.endMs) return;
     const x1 = syncMsToCanvasX(row.start_ms, w, win);
     const x2 = syncMsToCanvasX(row.end_ms, w, win);
@@ -580,7 +580,7 @@ async function exportSubtitle(format) {
 }
 
 function loadToEditor() {
-  const timed = syncRows.filter(r => r.end_ms != null && r.start_ms != null && r.end_ms > r.start_ms);
+  const timed = syncRows.filter(r => r.end_ms !== null && r.start_ms !== null && r.end_ms > r.start_ms);
   if (!timed.length) {
     toast('No timed rows to load', 'warning');
     return;
