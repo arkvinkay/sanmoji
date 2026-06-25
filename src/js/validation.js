@@ -1,7 +1,6 @@
 /**
  * Frontend validation — mirrors backend rules in validation.rs (Q12)
  */
-import { state } from './state.js';
 
 function collectOverlapIssues(rows, issues) {
   if (!rows || rows.length < 2) return;
@@ -53,10 +52,6 @@ export function validateProjectFrom(project) {
   });
   collectOverlapIssues(project.rows, issues);
   return issues;
-}
-
-export function validateProjectLocal() {
-  return validateProjectFrom(state.project);
 }
 
 export function hasBlockingErrors(issues) {

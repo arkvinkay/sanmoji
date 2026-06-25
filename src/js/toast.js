@@ -40,16 +40,6 @@ export function toast(message, type = 'info', ms = 3500) {
   }, ms);
 }
 
-export function clearToasts() {
-  for (const entry of activeToasts) {
-    if (entry.showRaf) cancelAnimationFrame(entry.showRaf);
-    if (entry.hideTimer) clearTimeout(entry.hideTimer);
-    if (entry.removeTimer) clearTimeout(entry.removeTimer);
-    entry.el?.remove();
-  }
-  activeToasts.length = 0;
-}
-
 export function setStatus(text) {
   const el = document.getElementById('status-text');
   if (el) el.textContent = text;

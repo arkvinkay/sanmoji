@@ -25,7 +25,7 @@ export const DEFAULT_SHORTCUTS = {
   playPause: 'Space',
   save: 'Ctrl+KeyS',
   undo: 'Ctrl+KeyZ',
-  redo: 'Ctrl+Shift+KeyZ',
+  redo: 'Ctrl+KeyY',
   setIn: 'BracketLeft',
   setOut: 'BracketRight',
   rowIn: 'KeyI',

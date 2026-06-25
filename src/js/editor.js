@@ -13,7 +13,7 @@ import {
   SCROLL_RENDER_THROTTLE_MS, DEFAULT_ROW_MS,
 } from './constants.js';
 import { openAnimModal, promptDuplicateRow } from './modals.js';
-import { renderTimeline } from './timeline.js';
+import { renderTimeline, invalidateTimeline } from './timeline.js';
 import { pushHistory } from './history.js';
 import { toast } from './toast.js';
 
@@ -132,7 +132,15 @@ function rowGapBadge(row, rows) {
   return '';
 }
 
-function refreshRowEl(el, row) {
+function animSummaryForRow(row) {
+  const anims = [row.romaji_anim, row.indo_anim, row.english_anim];
+  const hasOverride = anims.some(hasAnimOverride);
+  const hasRaw = anims.some(a => a?.raw_ass_in || a?.raw_ass_out);
+  if (hasOverride || hasRaw) return hasRaw ? 'raw ASS' : 'custom';
+  return animLabel(state.settings?.romaji_anim?.anim_in ?? 'fade');
+}
+
+function refreshRowEl(el, row, force = false) {
   const rows = state.project?.rows ?? [];
   el.className = 'lyric-row' + (row.id === state.activeRowId ? ' active' : '');
   el.dataset.id = row.id;
@@ -142,9 +150,18 @@ function refreshRowEl(el, row) {
   if (endBtn) endBtn.textContent = msToDisplay(row.end_ms);
   const badgeEl = el.querySelector('.row-badges');
   if (badgeEl) badgeEl.innerHTML = rowGapBadge(row, rows);
+  const animBtn = el.querySelector('[data-action="open-anim"]');
+  if (animBtn) {
+    const anims = [row.romaji_anim, row.indo_anim, row.english_anim];
+    const hasOverride = anims.some(hasAnimOverride);
+    const hasRaw = anims.some(a => a?.raw_ass_in || a?.raw_ass_out);
+    animBtn.className = (hasOverride || hasRaw) ? 'anim-badge overridden' : 'anim-badge';
+    animBtn.textContent = animSummaryForRow(row);
+  }
   ['romaji', 'indo', 'english'].forEach(f => {
     const inp = el.querySelector(`[data-field="${f}"]`);
-    if (inp && document.activeElement !== inp) inp.value = row[f] ?? '';
+    if (!inp) return;
+    if (force || document.activeElement !== inp) inp.value = row[f] ?? '';
   });
 }
 
@@ -157,9 +174,7 @@ function buildRowEl(row) {
   const hasOverride = anims.some(hasAnimOverride);
   const hasRaw = anims.some(a => a?.raw_ass_in || a?.raw_ass_out);
   const animBadgeClass = (hasOverride || hasRaw) ? 'anim-badge overridden' : 'anim-badge';
-  const animSummary = (hasOverride || hasRaw)
-    ? (hasRaw ? 'raw ASS' : 'custom')
-    : animLabel(state.settings?.romaji_anim?.anim_in ?? 'fade');
+  const animSummary = animSummaryForRow(row);
 
   const rows = state.project?.rows ?? [];
 
@@ -439,15 +454,13 @@ container?.addEventListener('click', e => {
       if (Date.now() < suppressTimeClickUntil) return;
       pushHistory();
       updateRow(id, { start_ms: currentMs });
-      btn.textContent = msToDisplay(currentMs);
-      renderTimeline();
+      renderRows();
       break;
     case 'set-end':
       if (Date.now() < suppressTimeClickUntil) return;
       pushHistory();
       updateRow(id, { end_ms: currentMs });
-      btn.textContent = msToDisplay(currentMs);
-      renderTimeline();
+      renderRows();
       break;
     case 'open-anim':
       openAnimModal(id);
@@ -488,4 +501,15 @@ export function syncActiveRowHighlight() {
   container.querySelectorAll('.lyric-row').forEach(el => {
     el.classList.toggle('active', el.dataset.id === state.activeRowId);
   });
+}
+
+export function invalidateEditorAfterHistory() {
+  editingRowId = null;
+  const focused = document.activeElement;
+  if (focused?.closest?.('#rows-container')) focused.blur();
+  if (container) container.innerHTML = '';
+  rowElCache.clear();
+  invalidateTimeline();
+  renderRows();
+  syncActiveRowHighlight();
 }

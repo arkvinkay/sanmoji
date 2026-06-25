@@ -1,7 +1,7 @@
 /**
  * Simple undo/redo via project snapshot history.
  */
-import { state, markDirty } from './state.js';
+import { state, markDirty, notify } from './state.js';
 import { MAX_HISTORY } from './constants.js';
 
 let undoStack = [];
@@ -28,7 +28,7 @@ export function updateHistoryIndicator() {
 function snapshot() {
   if (!state.project) return null;
   return JSON.stringify({
-    rows: structuredClone(state.project.rows),
+    rows: state.project.rows,
     activeRowId: state.activeRowId,
   });
 }
@@ -39,6 +39,7 @@ function applySnapshot(raw) {
     if (!state.project) return false;
     state.project.rows = data.rows ?? [];
     state.activeRowId = data.activeRowId ?? null;
+    notify('history', state.project.rows);
     return true;
   } catch (err) {
     console.warn('History snapshot corrupt — skipping restore:', err);

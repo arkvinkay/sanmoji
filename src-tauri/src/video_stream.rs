@@ -22,7 +22,14 @@ impl VideoPreviewState {
     }
 
     pub fn set(&self, path: PathBuf) {
-        *self.path.lock().unwrap() = Some(path);
+        let mut guard = match self.path.lock() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
+        if let Some(old) = guard.take() {
+            let _ = std::fs::remove_file(&old);
+        }
+        *guard = Some(path);
     }
 }
 
@@ -65,12 +72,13 @@ pub fn handle_stream_request(
     }
 
     let state = app.state::<VideoPreviewState>();
-    let file_path = state
-        .path
-        .lock()
-        .unwrap()
-        .clone()
-        .ok_or("no video preview is loaded")?;
+    let file_path = {
+        let guard = match state.path.lock() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
+        guard.clone().ok_or("no video preview is loaded")?
+    };
 
     let mut file = File::open(&file_path)?;
     let len = {
@@ -164,13 +172,13 @@ pub fn handle_stream_request(
         resp.body(Vec::new())
     } else {
         resp = resp.header(ACCEPT_RANGES, "bytes");
-        resp = resp.header(CONTENT_LENGTH, len);
         let mut buf = Vec::with_capacity(len.min(8 * 1024 * 1024) as usize);
         if len <= 8 * 1024 * 1024 {
             file.read_to_end(&mut buf)?;
         } else {
             file.take(8 * 1024 * 1024).read_to_end(&mut buf)?;
         }
+        resp = resp.header(CONTENT_LENGTH, buf.len() as u64);
         resp.body(buf)
     }
     .map_err(Into::into)

@@ -1,5 +1,133 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum AnimationType {
+    None,
+    #[default]
+    Fade,
+    Typewriter,
+    #[serde(rename = "slide_up")]
+    SlideUp,
+    #[serde(rename = "scale_pop")]
+    ScalePop,
+    Glow,
+    Bounce,
+    Glitch,
+    Unknown,
+}
+
+impl AnimationType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Fade => "fade",
+            Self::Typewriter => "typewriter",
+            Self::SlideUp => "slide_up",
+            Self::ScalePop => "scale_pop",
+            Self::Glow => "glow",
+            Self::Bounce => "bounce",
+            Self::Glitch => "glitch",
+            Self::Unknown => "fade",
+        }
+    }
+
+    fn from_str_loose(s: &str) -> Self {
+        match s.trim().to_lowercase().as_str() {
+            "none" => Self::None,
+            "fade" => Self::Fade,
+            "typewriter" => Self::Typewriter,
+            "slide_up" => Self::SlideUp,
+            "scale_pop" => Self::ScalePop,
+            "glow" => Self::Glow,
+            "bounce" => Self::Bounce,
+            "glitch" => Self::Glitch,
+            _ => Self::Unknown,
+        }
+    }
+
+    fn sanitize_watermark(self) -> Self {
+        match self {
+            Self::Unknown => Self::Glitch,
+            Self::None | Self::Fade | Self::Glitch => self,
+            _ => Self::Glitch,
+        }
+    }
+
+    fn sanitize_track(self) -> Self {
+        match self {
+            Self::Unknown | Self::Glitch => Self::Fade,
+            other => other,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for AnimationType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self::from_str_loose(&s))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum ExportPreset {
+    Ultrafast,
+    Superfast,
+    Veryfast,
+    Faster,
+    Fast,
+    #[default]
+    Medium,
+    Slow,
+    Slower,
+    Veryslow,
+}
+
+impl ExportPreset {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Ultrafast => "ultrafast",
+            Self::Superfast => "superfast",
+            Self::Veryfast => "veryfast",
+            Self::Faster => "faster",
+            Self::Fast => "fast",
+            Self::Medium => "medium",
+            Self::Slow => "slow",
+            Self::Slower => "slower",
+            Self::Veryslow => "veryslow",
+        }
+    }
+
+    fn from_str_loose(s: &str) -> Option<Self> {
+        match s.trim().to_lowercase().as_str() {
+            "ultrafast" => Some(Self::Ultrafast),
+            "superfast" => Some(Self::Superfast),
+            "veryfast" => Some(Self::Veryfast),
+            "faster" => Some(Self::Faster),
+            "fast" => Some(Self::Fast),
+            "medium" => Some(Self::Medium),
+            "slow" => Some(Self::Slow),
+            "slower" => Some(Self::Slower),
+            "veryslow" => Some(Self::Veryslow),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ExportPreset {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self::from_str_loose(&s).unwrap_or_default())
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackStyle {
@@ -15,8 +143,8 @@ pub struct TrackStyle {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnimationDefaults {
-    pub anim_in: String,        // "fade" | "typewriter" | "slide_up" | "scale_pop" | "glow" | "bounce" | "none"
-    pub anim_out: String,
+    pub anim_in: AnimationType,
+    pub anim_out: AnimationType,
     pub duration_in_ms: u32,
     pub duration_out_ms: u32,
     pub delay_ms: u32,
@@ -30,11 +158,10 @@ pub struct WatermarkSettings {
     pub height: u32,
     pub margin_x: u32,
     pub margin_y: u32,
-    /// "none" | "fade" | "glitch"
     #[serde(default = "default_wm_anim_in")]
-    pub anim_in: String,
+    pub anim_in: AnimationType,
     #[serde(default = "default_wm_anim_out")]
-    pub anim_out: String,
+    pub anim_out: AnimationType,
     #[serde(default = "default_wm_dur_in")]
     pub duration_in_ms: u32,
     #[serde(default = "default_wm_dur_out")]
@@ -62,12 +189,12 @@ pub struct WatermarkSettings {
     pub text_shadow: bool,
 }
 
-fn default_wm_anim_in() -> String {
-    "glitch".into()
+fn default_wm_anim_in() -> AnimationType {
+    AnimationType::Glitch
 }
 
-fn default_wm_anim_out() -> String {
-    "glitch".into()
+fn default_wm_anim_out() -> AnimationType {
+    AnimationType::Glitch
 }
 
 fn default_wm_dur_in() -> u32 {
@@ -112,18 +239,8 @@ fn default_wm_text_shadow() -> bool {
 
 impl WatermarkSettings {
     pub fn validate_and_sanitize(&mut self) {
-        let anim_in = self.anim_in.trim().to_lowercase();
-        self.anim_in = if ["none", "fade", "glitch"].contains(&anim_in.as_str()) {
-            anim_in
-        } else {
-            default_wm_anim_in()
-        };
-        let anim_out = self.anim_out.trim().to_lowercase();
-        self.anim_out = if ["none", "fade", "glitch"].contains(&anim_out.as_str()) {
-            anim_out
-        } else {
-            default_wm_anim_out()
-        };
+        self.anim_in = self.anim_in.sanitize_watermark();
+        self.anim_out = self.anim_out.sanitize_watermark();
         self.duration_in_ms = self.duration_in_ms.clamp(0, 5000);
         self.duration_out_ms = self.duration_out_ms.clamp(0, 5000);
         if self.text_size == 0 {
@@ -150,7 +267,7 @@ impl WatermarkSettings {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportSettings {
     pub crf: u32,
-    pub preset: String,
+    pub preset: ExportPreset,
     pub output_dir: String,
     /// libx264 | h264_nvenc | h264_qsv
     #[serde(default = "default_encoder")]
@@ -212,18 +329,6 @@ fn default_true() -> bool {
     true
 }
 
-const FFMPEG_PRESETS: &[&str] = &[
-    "ultrafast",
-    "superfast",
-    "veryfast",
-    "faster",
-    "fast",
-    "medium",
-    "slow",
-    "slower",
-    "veryslow",
-];
-
 fn is_valid_hex_color(color: &str) -> bool {
     let hex = color.trim_start_matches('#');
     hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit())
@@ -271,17 +376,23 @@ fn crf_max_for_encoder(encoder: &str) -> u32 {
     }
 }
 
+impl AnimationDefaults {
+    pub fn validate_and_sanitize(&mut self) {
+        if self.anim_in == AnimationType::Unknown {
+            self.anim_in = AnimationType::Fade;
+        }
+        if self.anim_out == AnimationType::Unknown {
+            self.anim_out = AnimationType::Fade;
+        }
+        self.anim_in = self.anim_in.sanitize_track();
+        self.anim_out = self.anim_out.sanitize_track();
+        self.duration_in_ms = self.duration_in_ms.clamp(0, 5000);
+        self.duration_out_ms = self.duration_out_ms.clamp(0, 5000);
+    }
+}
+
 impl ExportSettings {
     pub fn validate_and_sanitize(&mut self) -> Result<(), String> {
-        let preset = self.preset.trim().to_lowercase();
-        if !FFMPEG_PRESETS.contains(&preset.as_str()) {
-            return Err(format!(
-                "Invalid FFmpeg preset \"{}\". Choose one of: {}",
-                self.preset,
-                FFMPEG_PRESETS.join(", ")
-            ));
-        }
-        self.preset = preset;
         let crf_max = crf_max_for_encoder(&self.encoder);
         self.crf = self.crf.clamp(0, crf_max);
         Ok(())
@@ -293,6 +404,9 @@ impl AppSettings {
         self.romaji.validate_and_sanitize();
         self.indo.validate_and_sanitize();
         self.english.validate_and_sanitize();
+        self.romaji_anim.validate_and_sanitize();
+        self.indo_anim.validate_and_sanitize();
+        self.english_anim.validate_and_sanitize();
         self.watermark.validate_and_sanitize();
         self.export.validate_and_sanitize()?;
         let theme = self.theme.trim().to_lowercase();
@@ -305,6 +419,9 @@ impl AppSettings {
             preset.romaji.validate_and_sanitize();
             preset.indo.validate_and_sanitize();
             preset.english.validate_and_sanitize();
+            preset.romaji_anim.validate_and_sanitize();
+            preset.indo_anim.validate_and_sanitize();
+            preset.english_anim.validate_and_sanitize();
         }
         Ok(())
     }
@@ -344,22 +461,22 @@ impl Default for AppSettings {
                 shadow: false,
             },
             romaji_anim: AnimationDefaults {
-                anim_in: "typewriter".into(),
-                anim_out: "fade".into(),
+                anim_in: AnimationType::Typewriter,
+                anim_out: AnimationType::Fade,
                 duration_in_ms: 400,
                 duration_out_ms: 200,
                 delay_ms: 0,
             },
             indo_anim: AnimationDefaults {
-                anim_in: "slide_up".into(),
-                anim_out: "fade".into(),
+                anim_in: AnimationType::SlideUp,
+                anim_out: AnimationType::Fade,
                 duration_in_ms: 300,
                 duration_out_ms: 200,
                 delay_ms: 80,
             },
             english_anim: AnimationDefaults {
-                anim_in: "fade".into(),
-                anim_out: "fade".into(),
+                anim_in: AnimationType::Fade,
+                anim_out: AnimationType::Fade,
                 duration_in_ms: 300,
                 duration_out_ms: 200,
                 delay_ms: 160,
@@ -388,7 +505,7 @@ impl Default for AppSettings {
             },
             export: ExportSettings {
                 crf: 18,
-                preset: "slow".into(),
+                preset: ExportPreset::Slow,
                 output_dir: String::new(),
                 encoder: default_encoder(),
             },
@@ -424,10 +541,21 @@ mod tests {
     }
 
     #[test]
-    fn rejects_invalid_preset() {
-        let mut settings = AppSettings::default();
-        settings.export.preset = "turbo".into();
-        assert!(settings.validate_and_sanitize().is_err());
+    fn deserializes_invalid_preset_to_default() {
+        let json = r#"{"preset":"turbo","crf":18,"output_dir":"","encoder":"libx264"}"#;
+        let export: ExportSettings = serde_json::from_str(json).unwrap();
+        assert_eq!(export.preset, ExportPreset::Medium);
+    }
+
+    #[test]
+    fn deserializes_unknown_animation_to_unknown_then_sanitizes() {
+        let json = r#"{"anim_in":"unknown","anim_out":"fade","duration_in_ms":300,"duration_out_ms":200,"delay_ms":0}"#;
+        let mut anim: AnimationDefaults = serde_json::from_str(json).unwrap();
+        assert_eq!(anim.anim_in, AnimationType::Unknown);
+        assert_eq!(anim.anim_out, AnimationType::Fade);
+        anim.validate_and_sanitize();
+        assert_eq!(anim.anim_in, AnimationType::Fade);
+        assert_eq!(anim.anim_out, AnimationType::Fade);
     }
 
     #[test]

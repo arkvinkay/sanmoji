@@ -28,12 +28,12 @@ export async function invoke(cmd, args = {}) {
   return api.invoke(cmd, args);
 }
 
-export function convertFileSrc(path) {
+export function convertFileSrc(path, protocol = 'asset') {
   if (!path) return '';
   const api = core();
   if (!api) return path;
   const normalized = String(path).replace(/\\/g, '/');
-  return api.convertFileSrc(normalized);
+  return api.convertFileSrc(normalized, protocol);
 }
 
 function eventApi() {

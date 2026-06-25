@@ -18,16 +18,6 @@ export function fontEntries() {
   return (state.fonts ?? []).map(normalizeFontEntry).filter(Boolean);
 }
 
-export function fontFamilyName(entry) {
-  return normalizeFontEntry(entry)?.family ?? 'Arial';
-}
-
-export function fontPathForFamily(family) {
-  const target = (family ?? '').trim().toLowerCase();
-  const hit = fontEntries().find(f => f.family.toLowerCase() === target);
-  return hit?.path ?? '';
-}
-
 export function populateFontSelect(sel, current) {
   if (!sel) return;
   const cur = current ?? sel.dataset.current ?? 'Arial';
@@ -66,7 +56,7 @@ export function updateFontPreview(sel) {
 }
 
 export async function refreshSystemFonts(showToast = false) {
-  const fonts = await fetchSystemFonts();
+  const fonts = await fetchSystemFonts(true);
   state.fonts = fonts;
   document.querySelectorAll('select.font-select').forEach(sel => {
     populateFontSelect(sel, sel.value || sel.dataset.current);

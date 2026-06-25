@@ -244,19 +244,70 @@ function onWaveformDragEnd() {
   if (waveformCanvas) waveformCanvas.style.cursor = wfZoom > 1 ? 'grab' : 'pointer';
 }
 
-function rowAtTimelineY(y, h, rowCount) {
-  if (!rowCount) return -1;
-  const rowH = Math.min(14, (h - 16) / rowCount);
-  const laneH = rowH + 2;
-  const idx = Math.floor((y - 12) / laneH);
-  return idx >= 0 && idx < rowCount ? idx : -1;
+function computeLaneLayout(rows) {
+  const laneEnds = [];
+  const assignments = [];
+  const overlaps = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    for (let j = i + 1; j < rows.length; j++) {
+      const r1 = rows[i];
+      const r2 = rows[j];
+      if (r1.start_ms < r2.end_ms && r2.start_ms < r1.end_ms) {
+        overlaps.push({
+          start_ms: Math.max(r1.start_ms, r2.start_ms),
+          end_ms: Math.min(r1.end_ms, r2.end_ms),
+        });
+      }
+    }
+  }
+
+  rows
+    .map((row, rowIdx) => ({ row, rowIdx }))
+    .sort((a, b) => a.row.start_ms - b.row.start_ms || a.row.end_ms - b.row.end_ms)
+    .forEach(({ row, rowIdx }) => {
+      let lane = laneEnds.findIndex(end => row.start_ms >= end);
+      if (lane === -1) {
+        lane = laneEnds.length;
+        laneEnds.push(0);
+      }
+      assignments.push({ row, lane, rowIdx });
+      laneEnds[lane] = Math.max(laneEnds[lane], row.end_ms);
+    });
+
+  return { assignments, laneCount: Math.max(1, laneEnds.length), overlaps };
+}
+
+function laneMetrics(h, laneCount) {
+  const gap = 2;
+  const available = Math.max(1, h - 16 - gap * (laneCount - 1));
+  const rowH = Math.min(14, available / laneCount);
+  const laneH = rowH + gap;
+  return { rowH, laneH };
+}
+
+function rowAtTimelineY(y, h, rows, dur, useWindow) {
+  if (!rows?.length || !canvas) return -1;
+  const { assignments, laneCount } = computeLaneLayout(rows);
+  const { rowH, laneH } = laneMetrics(h, laneCount);
+  const w = canvas.clientWidth;
+  const x = canvas._lastMouseX ?? w / 2;
+
+  for (const { row, lane, rowIdx } of assignments) {
+    const yTop = 12 + lane * laneH;
+    if (y < yTop - 1 || y > yTop + rowH + 4) continue;
+    const { x1, x2 } = blockXCoords(row.start_ms, row.end_ms, w, dur, useWindow);
+    if (x >= x1 - 4 && x <= x2 + 4) return rowIdx;
+  }
+  return -1;
 }
 
 function onTimelineDragStart(e) {
   if (!state.project?.rows.length || !canvas) return;
   const rect = canvas.getBoundingClientRect();
   const y = e.clientY - rect.top;
-  const idx = rowAtTimelineY(y, canvas.clientHeight, state.project.rows.length);
+  canvas._lastMouseX = e.clientX - rect.left;
+  const idx = rowAtTimelineY(y, canvas.clientHeight, state.project.rows, durationMs(), wfZoom > 1);
   if (idx < 0) return;
   const row = state.project.rows[idx];
   const dur = durationMs();
@@ -283,7 +334,8 @@ function onTimelineDragOver(e) {
   if (!tlDragId || !canvas || !state.project) return;
   const rect = canvas.getBoundingClientRect();
   const y = e.clientY - rect.top;
-  tlDragOverIdx = rowAtTimelineY(y, canvas.clientHeight, state.project.rows.length);
+  canvas._lastMouseX = e.clientX - rect.left;
+  tlDragOverIdx = rowAtTimelineY(y, canvas.clientHeight, state.project.rows, durationMs(), wfZoom > 1);
   invalidateTimelineCache();
   renderTimeline();
 }
@@ -335,13 +387,7 @@ function pickRulerInterval(windowMs, w) {
   return RULER_TICK_INTERVALS_MS[RULER_TICK_INTERVALS_MS.length - 1];
 }
 
-function formatRulerLabel(ms, showHours) {
-  if (!showHours && ms < 3_600_000) {
-    const m = Math.floor((ms % 3_600_000) / 60_000);
-    const s = Math.floor((ms % 60_000) / 1_000);
-    const ms3 = ms % 1_000;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms3).padStart(3, '0')}`;
-  }
+function formatRulerLabel(ms) {
   return msToDisplay(ms);
 }
 
@@ -352,7 +398,6 @@ function drawTimeRuler(context, w, h, dur, useWindow) {
 
   const majorInterval = pickRulerInterval(win.windowMs, w);
   const minorInterval = majorInterval / 5;
-  const showHours = win.endMs >= 3_600_000;
   const font = '9px sans-serif';
   context.font = font;
 
@@ -374,7 +419,7 @@ function drawTimeRuler(context, w, h, dur, useWindow) {
     if (x < 0 || x > w) continue;
     context.fillRect(x, 0, 1, 10);
 
-    const label = formatRulerLabel(ms, showHours);
+    const label = formatRulerLabel(ms);
     const labelW = context.measureText(label).width;
     const labelX = x + 2;
     if (labelX + labelW < lastLabelEnd + 4) continue;
@@ -411,37 +456,38 @@ function drawTimelineBlocks(context, w, h, dur, useWindow) {
 
   if (!state.project?.rows.length) return;
 
-  const rowH = Math.min(14, (h - 16) / state.project.rows.length);
+  const { assignments, laneCount, overlaps } = computeLaneLayout(state.project.rows);
+  const { rowH, laneH } = laneMetrics(h, laneCount);
   const colors = { romaji: '#ffffff', indo: '#ffd700', english: '#aaddff' };
   const windowed = useWindow && wfZoom > 1;
 
-  state.project.rows.forEach((row, i) => {
+  overlaps.forEach(({ start_ms, end_ms }) => {
+    const { x1, x2 } = blockXCoords(start_ms, end_ms, w, dur, useWindow);
+    if (x2 <= 0 || x1 >= w) return;
+    context.fillStyle = 'rgba(255, 107, 107, 0.35)';
+    context.fillRect(x1, 10, Math.max(x2 - x1, 2), h - 12);
+  });
+
+  const sorted = [...state.project.rows].sort((a, b) => a.start_ms - b.start_ms);
+  sorted.forEach((row, i) => {
+    const next = sorted[i + 1];
+    if (!next || next.start_ms - row.end_ms <= GAP_WARN_MS) return;
+    const { x1, x2 } = blockXCoords(row.end_ms, next.start_ms, w, dur, useWindow);
+    if (x2 <= 0 || x1 >= w) return;
+    context.fillStyle = 'rgba(68, 170, 255, 0.35)';
+    context.fillRect(x1, h - 6, Math.max(x2 - x1, 2), 3);
+  });
+
+  assignments.forEach(({ row, lane, rowIdx }) => {
     const { x1, x2, win } = blockXCoords(row.start_ms, row.end_ms, w, dur, useWindow);
     const rowOffscreen = windowed && win && (row.end_ms < win.startMs || row.start_ms > win.endMs);
-    const y = 12 + i * (rowH + 2);
-
-    const next = state.project.rows[i + 1];
-    if (next) {
-      if (row.end_ms > next.start_ms) {
-        const ox = blockXCoords(next.start_ms, row.end_ms, w, dur, useWindow);
-        if (ox.x2 > 0 && ox.x1 < w) {
-          context.fillStyle = 'rgba(255, 107, 107, 0.35)';
-          context.fillRect(ox.x1, y - 1, Math.max(ox.x2 - ox.x1, 2), rowH + 4);
-        }
-      } else if (next.start_ms - row.end_ms > GAP_WARN_MS) {
-        const gx = blockXCoords(row.end_ms, next.start_ms, w, dur, useWindow);
-        if (gx.x2 > 0 && gx.x1 < w) {
-          context.fillStyle = 'rgba(68, 170, 255, 0.35)';
-          context.fillRect(gx.x1, y + rowH / 2 - 1, Math.max(gx.x2 - gx.x1, 2), 3);
-        }
-      }
-    }
+    const y = 12 + lane * laneH;
 
     if (rowOffscreen) return;
 
     const barW = Math.max(x2 - x1, 2);
     const isActive = row.id === state.activeRowId;
-    const isDragOver = tlDragOverIdx === i && tlDragId && tlDragId !== row.id;
+    const isDragOver = tlDragOverIdx === rowIdx && tlDragId && tlDragId !== row.id;
 
     if (isDragOver) {
       context.fillStyle = 'rgba(224, 92, 0, 0.25)';
@@ -681,4 +727,8 @@ export function bulkScale(factor) {
 export function invalidateTimeline() {
   invalidateTimelineCache();
   invalidateWaveformCache();
+}
+
+export function getWaveformPeaks() {
+  return waveformPeaks;
 }

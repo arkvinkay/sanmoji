@@ -1,6 +1,9 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+
+static SYSTEM_FONTS: Mutex<Option<Vec<FontInfo>>> = Mutex::new(None);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FontInfo {
@@ -123,7 +126,7 @@ fn scan_font_dir(dir: &Path, out: &mut HashMap<String, FontInfo>) {
     }
 }
 
-pub fn collect_system_fonts() -> Vec<FontInfo> {
+fn scan_system_fonts() -> Vec<FontInfo> {
     let mut map: HashMap<String, FontInfo> = HashMap::new();
 
     #[cfg(windows)]
@@ -165,6 +168,20 @@ pub fn collect_system_fonts() -> Vec<FontInfo> {
     let mut fonts: Vec<FontInfo> = map.into_values().collect();
     fonts.sort_by_key(|a| a.family.to_lowercase());
     fonts
+}
+
+pub fn clear_system_fonts_cache() {
+    if let Ok(mut cache) = SYSTEM_FONTS.lock() {
+        *cache = None;
+    }
+}
+
+pub fn collect_system_fonts() -> Vec<FontInfo> {
+    let mut cache = SYSTEM_FONTS.lock().unwrap_or_else(|e| e.into_inner());
+    if cache.is_none() {
+        *cache = Some(scan_system_fonts());
+    }
+    cache.clone().unwrap_or_default()
 }
 
 pub fn resolve_font_path_by_family(family: &str) -> Option<String> {

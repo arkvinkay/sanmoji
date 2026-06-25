@@ -220,7 +220,8 @@ function computeWatermarkAnim(currentMs) {
 }
 
 function drawGlitchImage(img, x, y, w, h, intensity) {
-  if (!ctx || intensity <= 0.02) {
+  if (!ctx) return;
+  if (intensity <= 0.02) {
     ctx.drawImage(img, x, y, w, h);
     return;
   }

@@ -15,8 +15,12 @@ use http::header::CONTENT_TYPE;
 use http::status::StatusCode;
 use http::Response;
 use serde::Serialize;
+use std::path::Path;
+use std::sync::Mutex;
 use tauri::Manager;
 use video_stream::VideoPreviewState;
+
+pub struct StartFileState(pub Mutex<Option<String>>);
 
 #[derive(Clone, Serialize)]
 pub struct ProgressEvent {
@@ -46,6 +50,15 @@ pub fn run() {
         })
         .setup(|app| {
             app.manage(VideoPreviewState::new());
+            let start_file = std::env::args().skip(1).find(|arg| {
+                let path = Path::new(arg);
+                path.extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e.eq_ignore_ascii_case("smpr"))
+                    .unwrap_or(false)
+                    && path.exists()
+            });
+            app.manage(StartFileState(Mutex::new(start_file.map(|s| s.to_string()))));
             commands::init_app_state(app.handle())
                 .map_err(std::io::Error::other)?;
             Ok(())
@@ -78,6 +91,7 @@ pub fn run() {
             commands::get_legacy_migration_offer,
             commands::import_legacy_data,
             commands::decline_legacy_migration,
+            commands::get_start_file,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

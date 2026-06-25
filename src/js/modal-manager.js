@@ -92,10 +92,6 @@ export function closeModal(modalEl, opts = {}) {
   }
 }
 
-export function isModalOpen(modalEl) {
-  return openModals.has(modalEl);
-}
-
 export function initModalBackdropClose() {
   document.querySelectorAll('.modal').forEach(modalEl => {
     modalEl.addEventListener('click', (e) => {
