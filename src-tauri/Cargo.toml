@@ -27,6 +27,9 @@ percent-encoding = "2"
 getrandom = "0.2"
 ttf-parser = "0.25"
 
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+
 [profile.release]
 opt-level = "s"
 strip = true

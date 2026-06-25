@@ -57,7 +57,7 @@
     "fileAssociations": [
       {
         "ext": ["smpr"],
-        "name": "SanMoji Project",
+        "name": "SanMoji.smpr",
         "description": "SanMoji subtitle project file",
         "mimeType": "application/x-sanmoji-project",
         "role": "Editor"

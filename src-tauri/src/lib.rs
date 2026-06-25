@@ -1,5 +1,6 @@
 mod ass;
 mod commands;
+mod file_assoc;
 mod migration;
 mod fonts;
 mod ffmpeg_fetch;
@@ -49,6 +50,7 @@ pub fn run() {
             });
         })
         .setup(|app| {
+            file_assoc::ensure_smpr_association();
             app.manage(VideoPreviewState::new());
             let start_file = std::env::args().skip(1).find(|arg| {
                 let path = Path::new(arg);
