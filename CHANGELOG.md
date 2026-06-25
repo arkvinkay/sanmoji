@@ -2,6 +2,15 @@
 
 All notable changes to SanMoji are documented in this file.
 
+## [1.1.1] - 2026-06-25
+
+### Fixed
+- `.smpr` file association registers correctly on NSIS install (`SHELL_CONTEXT` was undefined in the installer template) and self-repairs on Windows startup when the extension is unset or already mapped to SanMoji.
+- Export modal resets progress UI on FFmpeg download or export failures so the dialog can be retried immediately.
+- Settings loaded from disk are validated and sanitized in `read_settings_from_disk`; validation errors mark the file as corrupt.
+- Settings Cancel assigns `state.settings` only when `fetchSettings()` returns a non-null object.
+- Sync Lyric uses strict null/undefined timing checks; `closeRemainingRows` anchors backfill to already-timed rows to avoid overlapping earlier lines.
+
 ## [1.1.0] - 2026-06-24
 
 ### Added
