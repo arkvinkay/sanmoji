@@ -46,8 +46,11 @@ pub(crate) fn read_settings_from_disk(app: &AppHandle) -> Result<(AppSettings, b
     if path.exists() {
         let raw = fs::read_to_string(&path)
             .map_err(|e| friendly_io_err("read settings", &path, e))?;
-        match serde_json::from_str(&raw) {
-            Ok(settings) => Ok((settings, false)),
+        match serde_json::from_str::<AppSettings>(&raw) {
+            Ok(mut settings) => {
+                let corrupt = settings.validate_and_sanitize().is_err();
+                Ok((settings, corrupt))
+            }
             Err(e) => {
                 eprintln!("settings.json corrupt, using defaults: {e}");
                 Ok((AppSettings::default(), true))

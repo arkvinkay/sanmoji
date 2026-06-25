@@ -500,7 +500,10 @@ document.getElementById('btn-settings-save')?.addEventListener('click', async ()
 
 document.getElementById('btn-settings-cancel')?.addEventListener('click', async () => {
   try {
-    state.settings = await fetchSettings();
+    const reloaded = await fetchSettings();
+    if (reloaded) {
+      state.settings = reloaded;
+    }
   } catch (err) {
     console.warn('Reload settings on settings cancel:', err);
   }

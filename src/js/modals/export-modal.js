@@ -139,6 +139,7 @@ async function runExport(options = null) {
         await invoke('ensure_ffmpeg');
       }
     } catch (err) {
+      resetExportProgress();
       toast('FFmpeg not available: ' + err, 'error');
       return;
     }
@@ -159,6 +160,7 @@ async function runExport(options = null) {
     toast('Export complete!', 'success');
     hideModal('modal-export');
   } catch (err) {
+    resetExportProgress();
     toast('Export failed: ' + err, 'error');
   } finally {
     setExportModalLocked(false);
